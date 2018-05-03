@@ -1,0 +1,170 @@
+---
+title: "CLASS NAME - HW NUMBER"
+author: "YOUR NAME HERE"
+output: html_document
+---
+
+### Problem 1
+**(a)**
+```{r, echo = FALSE}
+
+```
+
+**(b)**
+```{r, echo = FALSE}
+
+```
+
+**(c)**
+```{r, echo = FALSE}
+
+```
+
+**(d)**
+```{r, echo = FALSE}
+
+```
+
+### Problem 2
+**(a)**
+```{r, echo = FALSE}
+
+```
+
+**(b)**
+```{r, echo = FALSE}
+
+```
+
+**(c)**
+```{r, echo = FALSE}
+
+```
+
+**(d)**
+```{r, echo = FALSE}
+
+```
+### Problem 3
+**(a)**
+```{r, echo = FALSE}
+
+```
+
+**(b)**
+```{r, echo = FALSE}
+
+```
+
+**(c)**
+```{r, echo = FALSE}
+
+```
+
+**(d)**
+```{r, echo = FALSE}
+
+```
+### Problem 4
+**(a)**
+```{r, echo = FALSE}
+
+```
+
+**(b)**
+```{r, echo = FALSE}
+
+```
+
+**(c)**
+```{r, echo = FALSE}
+
+```
+
+**(d)**
+```{r, echo = FALSE}
+
+```
+### Problem 5
+**(a)**
+```{r, echo = FALSE}
+
+```
+
+**(b)**
+```{r, echo = FALSE}
+
+```
+
+**(c)**
+```{r, echo = FALSE}
+
+```
+
+**(d)**
+```{r, echo = FALSE}
+
+```
+### Problem 6
+**(a)**
+```{r, echo = FALSE}
+
+```
+
+**(b)**
+```{r, echo = FALSE}
+
+```
+
+**(c)**
+```{r, echo = FALSE}
+
+```
+
+**(d)**
+```{r, echo = FALSE}
+
+```
+### Problem 7
+**(a)**
+```{r, echo = FALSE}
+
+```
+
+**(b)**
+```{r, echo = FALSE}
+
+```
+
+**(c)**
+```{r, echo = FALSE}
+
+```
+
+**(d)**
+```{r, echo = FALSE}
+
+```
+### Problem 8
+**(a)**
+```{r, echo = FALSE}
+
+```
+
+**(b)**
+```{r, echo = FALSE}
+
+```
+
+**(c)**
+```{r, echo = FALSE}
+
+```
+
+**(d)**
+```{r, echo = FALSE}
+
+```
+### R Appendix
+```{r, ref.label=knitr::all_labels(),echo=TRUE,eval=FALSE}
+```

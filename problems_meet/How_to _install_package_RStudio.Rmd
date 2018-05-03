@@ -1,0 +1,94 @@
+---
+title: "How to resolve R package dependency in Ubuntu 16.04"
+author: "Mingyi Xue"
+date: "April 5, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```
+ERROR: dependencies ‘plyr’, ‘reshape2’, ‘scales’ are not available for package ‘ggplot2’
+* removing ‘/home/xmy/R/x86_64-pc-linux-gnu-library/3.4/ggplot2’
+Warning in install.packages :
+  installation of package ‘ggplot2’ had non-zero exit status
+```
+Things became quite annoying when I just referred to the guidance online and followed it to install `ggplot2` in RStudio... Wait a moment! Was I running RStudio under a Ubuntu operating system? Ooops...
+
+# Switch to terminal first
+
+Open a terminal with `Ctrl+Alt+T` and try to install package `plyr`, which is a dependency for package `ggplot2`.
+
+```
+sudo apt-get install r-cran-plyr
+```
+
+
+If you are lucky enough to find that everything goes on well and normally, stop reading rest of the passage.
+If you are faced up with the following problem, continue...
+
+
+```
+dpkg: error: error executing hook 'if { test "$DPKG_HOOK_ACTION" = add-architecture || test "$DPKG_HOOK_ACTION" = remove-architecture; } && test -x /usr/share/pkg-config-dpkghook; then /usr/share/pkg-config-dpkghook update; fi', exit code -1
+FATAL -> Failed to fork.
+
+```
+
+Or try to install `ggplot2` directly.
+
+```
+sudo apt-get install r-cran-ggplot2
+```
+
+You may get an error like this:
+
+
+```
+Selecting previously unselected package r-cran-colorspace.
+(Reading database ... 252263 files and directories currently installed.)
+Preparing to unpack .../r-cran-colorspace_1.2-4-1_amd64.deb ...
+E: Sub-process /usr/bin/dpkg returned an error code (2)
+```
+
+# Add a mirror source
+
+If you have chosen to continue at this moment, you can type in command like this to add your favourite cran mirror source to download relavant R packages.
+
+```
+sudo echo "deb http://cran.cnr.berkeley.edu/bin/linux/ubuntu xenial/" | sudo tee -a /etc/apt/sources.list
+```
+
+`xenial` is a variable up to linux version on your PC or Virtual Machine.
+
+Actually, `cran.cnr.berkeley.edu` is also a variable. You can select your favourite cran mirror source, which I have mentioned above, but you'd best select a stable and well-functioning mirror source near you instead of an arbitrary one you adore :) ...
+
+# Try to install again
+
+Type in the command below in terminal:
+
+```
+sudo apt-get install r-cran-ggplot2
+```
+
+And prepare yourself for the Error:
+
+```
+E: dpkg was interrupted, you must manually run 'sudo dpkg --configure -a' to correct the problem. 
+
+```
+
+Go ahead and type in what the error suggested:
+
+```
+sudo dpkg --configure -a
+```
+
+And type in next command to finalize all the annoying stuff above:
+
+```
+sudo apt-get install r-cran-ggplot2
+```
+
+Open RStudio and run a script to check if everything is alright now.

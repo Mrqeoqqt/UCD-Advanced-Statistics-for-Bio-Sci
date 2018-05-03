@@ -1,0 +1,270 @@
+---
+title: "STA-101-Week-03-Model-Selection"
+author: "Erin K. Melcon"
+output: html_document
+---
+## Installing packages
+Note, this handout requires installation of the packages `leaps` and `MPV`.  You can install them with the commands `install.packages("leaps")` and `install.packages("MPV")`.
+
+## Finding a p-value in R for F distribution
+What you will need is $df(num)$, $df(denom)$, and the value of the test statistic.  Then, you may use the following command to get the p-value:
+
+`pf(Fs, df(num), df(denom), lower.tail = FALSE)`
+
+For example, if my $df(num) = 4$, $df(denom) = 52$, and $Fs = 5.42$, my p-value is:
+```{r}
+pf(5.42, 4, 52, lower.tail = FALSE)
+```
+
+### Testing a large and small model
+
+When we have a "larger model" vs a "smaller model", we either want to fit two ANOVA tables, or there is a function that will allow us to compare the models directly.  You'll want to fit two models, one with less $X$ variables in it, and one that has more.  
+
+For example, consider the Guinea Pig data from lecture, which can be found in the dataset `ToothGrowth`.  Maybe we want to test if the interaction term, and the delivery method should be dropped from the model.
+
+Fitting the two models with their ANOVA tables give:
+
+```{r}
+smaller.model = lm(len ~ dose, data = ToothGrowth)
+anova.small = anova(smaller.model)
+larger.model = lm(len ~ dose + supp + dose*supp, data = ToothGrowth)
+anova.large = anova(larger.model)
+```
+
+Now, the generic command to test $H_0$:  The smaller model fits better (i.e $\beta_2 = \beta_3 = 0$ in our example), vs. $H_A$:  The larger model fits better (at least one $\beta_2, \beta_3 \neq 0$ in our example) is:
+
+`anova(smaller.model,larger.model)`
+
+This gives the separate values of SSE, the test-statistic, and the p-value:
+
+```{r}
+anova(smaller.model,larger.model)
+```
+The first row gives the degrees of freedom for SSE for the smaller model, and the SSE for the smaller model.  The next gives the degrees of freedom for SSE for the larger model, the SSE for the larger model, the difference in the SSE's, the value of the F statistic, and the corresponding p-value.
+
+### Finding a Partial R^2
+Note, for testing a "full model" vs. a "reduced model" or to find partial $R^2$ values, you already have the code to find SSE's for different models.  There is no need for specific code to do this.  However, I have made a function that when given a "smaller" model, and "bigger" model, will calculate $R^2\{bigger|smaller\}$:
+```{r}
+Partial.R2 = function(small.model,big.model){
+  SSE1 = sum(small.model$residuals^2)
+  SSE2 = sum(big.model$residuals^2)
+  PR2 = (SSE1 - SSE2)/SSE1
+  return(PR2)
+}
+```
+
+For example, we may use:
+
+```{r}
+Partial.R2(smaller.model, larger.model)
+```
+
+### The data, model selection
+
+We will be using the built-in dataset `state.x77`.  To see more about this dataset, you may type `?state.x77`.  
+
+First I will rename things, because I don't like the names they default to (**You do NOT have to do this step for your homework, as the names I gave you are reasonable.  IGNORE THIS STEP**):
+
+```{r}
+new.state = data.frame(pop = state.x77[,1], income = state.x77[,2], ill = state.x77[,3], life.exp =  state.x77[,4], murder = state.x77[,5], hs.grad = state.x77[,6], frost.days = state.x77[,7], land.area = state.x77[,8])
+```
+
+A quick summary of the data is:
+```{r}
+summary(new.state)
+```
+
+Next, just to save on space, I will rename the column to be $Y$, $X_1$, $X_2$, etc.  Then, I'll fit the full model.
+```{r}
+names(new.state) = c("X1","X2","X3","Y","X4","X5","X6","X7" )
+full.model = lm(Y~ X1 + X2 + X3 + X4 + X5 + X6 + X7,data = new.state)
+```
+
+**You may want to rename your columns as I did directly above.**
+
+
+### 1. Model Criteria
+For everything except the **Mallow's CP** critera, I've written my own function that will calculate the log-likelihood, p, n, AIC, BIC, PRESS, and $R^2_{adj}$.  What you will have to do is install the package `MPV` using the command `install.packages("MPV")`, and then copy and paste the below into R once.  Then, you will have a function in R called `All.Criteria` which when given a linear regression model, calculates all the critera (except Mallows CP).
+
+The code you will have to copy and paste is:
+```{r}
+All.Criteria = function(the.model){
+  p = length(the.model$coefficients)
+  n = length(the.model$residuals)
+  the.BIC = BIC(the.model)
+  the.LL = logLik(the.model)
+  the.AIC = AIC(the.model)
+  the.PRESS = PRESS(the.model)
+  the.R2adj = summary(the.model)$adj.r.squared
+  the.results = c(the.LL,p,n,the.AIC,the.BIC,the.PRESS,the.R2adj)
+  names(the.results) = c("LL","p","n","AIC","BIC","PRESS","R2adj")
+  return(the.results)
+}
+```
+
+Then, to use the function I would have to load the library `MPV`, and give the function I built the name of the model:
+```{r}
+library(MPV)
+All.Criteria(full.model)
+```
+
+Note, this is good for if you are trying to decide between a few models, but not if you are trying to look at many models at once.  But, say for example, I wanted to remove the Xs one at a time.  Then, what I could do is make a vector of all the model formulas I am interested in, and then use my function to calculate all the values.  For example, a list of models I may be interested in is:
+```{r}
+All.Models = c("Y~X1","Y~X1+X2","Y~X1+X3","Y~X1+X4","Y~X1+X5","Y~X1+X6")
+```
+Note, if you wanted to keep adding formulas you would separate them by a comma, and continue adding what you would usually write as the first thing in `lm` in quotes.
+
+Now, I'll write a little loop that fits all of the models above, and then uses my function to find all the criteria:
+```{r}
+all.model.crit = t(sapply(All.Models,function(M){
+  current.model = lm(M,data = new.state)
+  All.Criteria(current.model)
+}))
+round(all.model.crit,4)
+```
+
+For example, the model with the lowest AIC includes X1 and X4, the lowest PRESS and R2adj also include X1 and X4.  Thus, there is agreement among criteria. 
+
+If you wanted to reuse the above code, you would have to name your columns `Y`, `X1`, etc, and then change `new.state` to the name of your dataset.
+
+### 2.  All subsets regression
+For reasonably small number of predictors, we can use a function in R that calculates all possible models, and the corresponding AIC, BIC, or CPMallows for each. 
+
+First, you have to install the package `leaps`.  Then, load the library `leaps`.  The function we will use is called: `regsubsets`.  The general format is to give `regsubsets` the same information as `lm`, and by default the full model:
+
+`regsubsets(Y ~ X1 + X2  + X3 ..., data = dataset)`  
+or  
+`regsubsets(Y ~ ., data = dataset)`  
+
+For example,
+```{r}
+library(leaps)
+all.models = regsubsets(Y ~., data = new.state)
+```
+
+The output of this is pretty dreadful, but it gives back the top two models of each size (two models that have just 1 X, two models that have 2 X's, etc.).  To summarize the CPmallows, AIC, and BIC for these models we can use the following command that I have created:
+
+```{r}
+names.of.data = c("Y","X1","X2","X3","X4","X5","X6","X7") #You would have to remove or add X's as necessary
+some.stuff = summary(all.models)
+n= nrow(new.state) #Will have to change the name
+K = nrow(some.stuff$which)
+nicer = lapply(1:K,function(i){
+  model = paste(names.of.data[some.stuff$which[i,]],collapse = ",")
+  p = sum(some.stuff$which[i,])
+  BIC = some.stuff$bic[i]
+  CP = some.stuff$cp[i]
+  results = data.frame(model,p,CP,BIC)
+  return(results)
+})
+nicer = Reduce(rbind,nicer)
+nicer
+```
+A small note:  BIC shown here is a slightly different formula than we use, but we would still pick the lowest (most negative) BIC as the "best" model.  Thus, the model with the most negative BIC is Y,X1,X4,X5,X6.
+
+By CP mallow however, we want the model where CP $\approx$ P (disregarding the largest model where this is ALWAYS true), this is the model Y,X4,X5,X6.  In this case, Mallows CP actually chose a smaller model.  This is because there is a general trend, but it does not always hold.
+
+### 3. Stepwise Regression
+On Monday, May 1st we will go over stepwise regression.  But, in preparation here is the code to do forward stepwise, backward stepwise, forward-backward, or backward-forward in R.
+
+All of the functions will require that we fit two models - the full (or largest) model, and the empty model (with no X variables).  To do that, we can use the the following:
+
+`full.model = lm(Y ~ X1+X2+X3+X4 ..., data =dataset)` (Adding as many X's as you have)  
+
+`empty.model = lm(Y ~ 1, data =dataset)`
+
+For example,
+
+```{r}
+full.model = lm(Y ~ X1 + X2 + X3 + X4 + X5 + X6 + X7, data = new.state)
+empty.model = lm(Y ~ 1,data = new.state)
+```
+
+### 3.1 Forward step-wise regression
+**First, again this function uses a slightly different formula for AIC, but we still would like the smallest AIC (or most negative).**
+
+For foward step-wise regression, we start with the empty model, and add one X at a time.  To code this in R, it is:
+
+```{r}
+n = nrow(new.state)
+library(MASS)
+forward.model.AIC = stepAIC(empty.model, scope = list(lower = empty.model, upper= full.model), k = 2,direction = "forward")
+forward.model.BIC = stepAIC(empty.model,  scope = list(lower = empty.model, upper= full.model), k = log(n),direction = "forward")
+```
+
+The `scope` gives what the largest and smallest model it should consider is, and `k` correspds to 2 if we want AIC, and log(n) if we want BIC.   `direction` can be "forward","backward", or "both".
+
+Now, if we don't want R to print out every step (which usually we do not), we can add `trace = FALSE` to our commands:
+
+```{r}
+forward.model.AIC = stepAIC(empty.model, scope = list(lower = empty.model, upper= full.model), k = 2,direction = "forward",trace = FALSE)
+forward.model.BIC = stepAIC(empty.model,  scope = list(lower = empty.model, upper= full.model), k = log(n),trace=FALSE,direction = "forward")
+```
+
+What is returned is your model formula, so we could for example see the estimated coefficients by 
+```{r}
+forward.model.AIC$coefficients
+```
+
+### 3.2 Backward step-wise selection
+All we would change is what model we give it first, and what direction we are going in.
+
+```{r}
+backward.model.AIC = stepAIC(full.model, scope = list(lower = empty.model, upper= full.model), k = 2,direction = "backward",trace = FALSE)
+backward.model.BIC = stepAIC(full.model,  scope = list(lower = empty.model, upper= full.model), k = log(n),trace=FALSE,direction = "backward")
+```
+
+### 3.3 Forward-Backward or Backward-Forward step-wise selection 
+Now we change what model we give it first, and what direction.  For FB = forward-backward:
+
+```{r}
+FB.model.AIC = stepAIC(empty.model, scope = list(lower = empty.model, upper= full.model), k = 2,direction = "both",trace = FALSE)
+FB.model.BIC = stepAIC(empty.model,  scope = list(lower = empty.model, upper= full.model), k = log(n),trace=FALSE,direction = "both")
+```
+
+
+For BF = backward-forward:
+```{r}
+BF.model.AIC = stepAIC(full.model, scope = list(lower = empty.model, upper= full.model), k = 2,direction = "both",trace = FALSE)
+BF.model.BIC = stepAIC(full.model,  scope = list(lower = empty.model, upper= full.model), k = log(n),trace=FALSE,direction = "both")
+```
+
+### Final Models
+Now we can look at all the AIC models:
+
+```{r}
+forward.model.AIC$coefficients
+backward.model.AIC$coefficients
+FB.model.AIC$coefficients
+BF.model.AIC$coefficients
+```
+
+Or the BIC models:
+```{r}
+forward.model.BIC$coefficients
+backward.model.BIC$coefficients
+FB.model.BIC$coefficients
+BF.model.BIC$coefficients
+```
+
+We have some agreement here, which is always nice.  
+
+### 4.  Prediction intervals
+To find a prediction interval for a mean response, we can use the following commands, where you will have to change row and column names, and what value you are predicting at:
+
+```{r}
+best.model = FB.model.BIC # Save your best model
+names(FB.model.BIC$coefficients) #To see the names of my columns
+x.star = data.frame(X1 = 2000, X4 = 1, X5 = 54, X6 = 100)
+predict(best.model, x.star, interval = "confidence", level = 1-0.05) #For a 95\% CI
+```
+
+The first value under `fit` gives the predicted value ($y^{\ast}$), the second value under `lwr` the lower bound for the CI, and the third value under `upr` the upper bound for the CI.
+
+To find a prediction interval for a brand new subject, we would change one thing in the above code:
+
+```{r}
+predict(best.model, x.star, interval = "prediction", level = 1-0.05) #For a 95\% CI
+```
+
+Notice the interval is wider than that from the mean response, which is as we expected.

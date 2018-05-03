@@ -1,0 +1,489 @@
+---
+title: "STA 101 - HW 2"
+author: "Mingyi Xue"
+date: "April 18, 2018"
+output: html_document
+---
+
+### Load databases into current workingspace:
+
+```{r, echo = FALSE,warning=FALSE}
+setwd("/home/xmy/STA 101/Homework/HW2")
+poverty<-read.csv("poverty.csv",header = TRUE)
+head(poverty,n=3)
+hospital<-read.csv("hospital.csv",header = TRUE)
+head(hospital,n=3)
+fish<-read.csv("fish.csv",header = TRUE)
+head(fish,n=3)
+```
+### Load package `ggplot2`:
+
+```{r}
+library(ggplot2)
+```
+
+### Problem 1
+**(a)**
+```{r, echo = FALSE, warning=FALSE}
+the.model=lm(data=poverty,Brth15to17~PovPct)
+the.e_i=the.model$residuals
+the.SWtest=shapiro.test(the.e_i)
+the.SWtest
+```
+```{r, echo = FALSE, warning=FALSE}
+qqnorm(the.model$residuals)
+qqline(the.model$residuals)
+```
+
+This plot has most of the points very close to the line, with several possible outliers.  
+$H_{0}$: The errors are normally distributed.  
+$H_{A}$: The errors are not normally distributed.  
+The p-value of $e_{i}$ is `r round(the.SWtest$p.value,4)` and it is relatively large, so we fail to reject $H_{0}$. As a result, the errors are approximately normal.
+
+**(b)**
+```{r, echo = FALSE, warning=FALSE}
+qplot(data=poverty,x=the.model$fitted.values,y=the.model$residuals)+ggtitle("residuals vs fitted values")+xlab("fitted values")+ylab("residuals")+geom_hline(yintercept = 0, col='purple')
+```
+```{r, echo = FALSE, warning=FALSE}
+Group = rep("Lower",nrow(poverty))
+Group[poverty$Brth15to17 < median(poverty$Brth15to17)] = "Upper"
+Group = as.factor(Group) #Changes it to a factor, which R recognizes as a grouping variable.
+poverty$Group = Group
+the.FKtest= fligner.test(the.model$residuals, poverty$Group)
+the.FKtest
+```
+
+$H_{0}$: $\sigma^{2}_{lower}=\sigma^{2}_{upper}$.  
+$H_{A}$: $\sigma^{2}_{lower}\neq \sigma^{2}_{upper}$.  
+The p-value of variance of $e_{i}s$ is `r round(the.FKtest$p.value,4)` and it is relatively large, so we fail to reject $H_{0}$. As a result, $\sigma^{2}_{lower}=\sigma^{2}_{upper}$ and the error variance is constant.
+
+**(c)**
+```{r, echo = FALSE, warning=FALSE}
+#SR=stdres(the.model)
+#hist(SR,main = "Standardized residuals")
+#ggplot(data=poverty,aes(x=SR))+ggtitle("histogram of standardized errors")+geom_histogram()+xlab("standardized error")
+#cutoff=2
+#the.outliers=which(SR<-cutoff|SR>cutoff)
+#the.outliers
+CD=cooks.distance(the.model)
+cutoff=0.10
+plot(CD,ylab="Cook's Distance")+abline(h=cutoff,col='purple')
+```
+
+I used cooks distance to find outliers, and outliers are as follows,
+
+```{r, echo = FALSE, warning=FALSE}
+#the.outliers=CD[CD>cutoff]
+the.outliers=poverty[which(CD>cutoff),]
+the.outliers
+```
+
+**(d)**
+```{r, echo = FALSE, warning=FALSE}
+the.slope1=the.model$coefficients[2]
+the.newset=poverty[-which(CD>cutoff),]
+new.model=lm(data=the.newset,Brth15to17~PovPct)
+the.slope2=new.model$coefficients[2]
+ggplot(poverty,aes(x=PovPct,y=Brth15to17)) + geom_point(shape = 19) +geom_smooth(method='lm',se= FALSE) + ggtitle("Old dataset of PovPct vs. Brth15to17") + ylab("Brth15to17") +xlab("PovPct")
+ggplot(the.newset,aes(x=PovPct,y=Brth15to17)) + geom_point(shape = 19) +geom_smooth(method='lm',se= FALSE,col='purple') + ggtitle("New dataset of PovPct vs. Brth15to17") + ylab("Brth15to17") +xlab("PovPct")
+```
+
+The slope of old model is `r round(the.slope1,4)`, and the slope of new model is `r round(the.slope2,4)`.  
+The absolute difference is `r round(the.slope1,4)-round(the.slope2,4)`. The difference comes from excluding some extremely large outliers.
+
+### Problem 2
+**(a)**
+```{r, echo = FALSE, warning=FALSE}
+alpha = 0.10
+the.CIs = confint(new.model,level = 1-alpha)
+round(the.CIs,4)
+```
+
+The confidence interval for $\beta_{0}$ is `r round(the.CIs[1,],4)`.  
+The confidence interval for $\beta_{1}$ is `r round(the.CIs[2,],4)`.  
+
+**(b)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+The confidence interval for $\beta_{1}$ is `r round(the.CIs[2,],4)`.  
+It means we are $90\%$ confident that when the percent of the states population living in poverty increases by 1, the birth rate per 1000 females 15 to 17 years old will increase between $`r round(the.CIs[2,1],4)`$ and $`r round(the.CIs[2,2],4)`$ on average, holding the other variables constant. 
+
+**(c)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+Yes, because the confidence interval of PovPct does not contain 0.
+
+**(d)**
+```{r, echo = FALSE, warning=FALSE}
+the.summary=summary(new.model)
+the.coef=the.summary$coefficients
+round(the.coef,4)
+```
+
+test statistic: $t_{s}=\frac{\hat{\beta_{1}}-0}{SE\{\hat{\beta_{1}}\}}$  
+degree of freedom: `r length(new.model$residuals)-length(new.model$coefficients)`  
+$H_{0}$:$\beta_{1}=0$.  
+$H_{A}$:$\beta_{1}\neq 0$.  
+p-value is `r round(the.coef[2,4],4)` and is small enough for us to reject $H_{0}$. As a result, $\beta_{1}\neq0$,which shows a significant linear relationship between $X_{1}$ and $Y$.
+
+**(e)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+p-value in (d) is `r round(the.coef[2,4],4)`. It means if $H_{0}$ was true: $\beta_{1}=0$ and there is no linear relationship between $PovPct$ and $Brth15to17$, we will observe our data or more extreme with the probability of `r round(the.coef[2,4],4)`.
+
+
+### Problem 3
+**(a)**
+```{r, echo = FALSE, warning=FALSE}
+the.model=lm(data=hospital,InfctRsk~MedSchool+Stay)
+the.e_i=the.model$residuals
+the.SWtest=shapiro.test(the.e_i)
+the.SWtest
+```
+```{r, echo = FALSE, warning=FALSE}
+qqnorm(the.model$residuals)
+qqline(the.model$residuals)
+```
+
+This plot has most of the points very close to the line, with several possible outliers.  
+$H_{0}$: The errors are normally distributed.  
+$H_{A}$: The errors are not normally distributed.  
+The p-value of $e_{i}$ is `r round(the.SWtest$p.value,4)`. 
+When $\alpha = 0.01$ and  $\alpha = 0.05$, p-value is not large enough so we reject $H_{0}$. As a result, the errors are not approximately normal.  
+When $\alpha = 0.10$, we fail to reject $H_{0}$. As a result, the errors are approximately normal.
+
+**(b)**
+```{r, echo = FALSE, warning=FALSE}
+qplot(data=hospital,x=the.model$fitted.values,y=the.model$residuals)+ggtitle("residuals vs fitted values")+xlab("fitted values")+ylab("residuals")+geom_hline(yintercept = 0, col='purple')
+```
+```{r, echo = FALSE, warning=FALSE}
+Group = rep("Lower",nrow(hospital))
+Group[hospital$InfctRsk < median(hospital$InfctRsk)] = "Upper"
+Group = as.factor(Group) #Changes it to a factor, which R recognizes as a grouping variable.
+hospital$Group = Group
+the.FKtest= fligner.test(the.model$residuals, hospital$Group)
+the.FKtest
+```
+
+$H_{0}$: $\sigma^{2}_{lower}=\sigma^{2}_{upper}$.  
+$H_{A}$: $\sigma^{2}_{lower}\neq \sigma^{2}_{upper}$.  
+The p-value of variance of $e_{i}s$ is `r round(the.FKtest$p.value,4)`.   
+When $\alpha = 0.01$ and  $\alpha = 0.05$, p-value is not large enough so we reject $H_{0}$. As a result, $\sigma^{2}_{lower}\neq \sigma^{2}_{upper}$.  
+When $\alpha = 0.10$, we fail to reject $H_{0}$. As a result, $\sigma^{2}_{lower}=\sigma^{2}_{upper}$ and the error variance is constant.
+
+**(c)**
+```{r, echo = FALSE, warning=FALSE}
+CD=cooks.distance(the.model)
+cutoff=0.10
+plot(CD,ylab="Cook's Distance")+abline(h=cutoff,col='purple')
+```
+
+I used cook's distance to find outliers, and outliers are as follows,
+
+```{r, echo = FALSE, warning=FALSE}
+the.outliers=hospital[which(CD>cutoff),]
+the.outliers
+```
+
+**(d)**
+```{r, echo = FALSE, warning=FALSE}
+the.newset=hospital[-which(CD>cutoff),]
+new.model=lm(data=the.newset,InfctRsk~MedSchool+Stay)
+the.matrix=matrix(c(the.model$coefficients[2],the.model$coefficients[3],
+                    new.model$coefficients[2],new.model$coefficients[3]),byrow=TRUE,nrow=2)
+rownames(the.matrix)=c('Old model','new Model')
+colnames(the.matrix)=c('MedSchool_Yes','Stay')
+```
+
+The slope of two models are as follows,  
+
+```{r, echo = FALSE, warning=FALSE}
+round(the.matrix,4)
+```
+
+The absolute difference is `r round(the.matrix[2,2]-the.matrix[1,2],4)`.
+
+### Problem 4
+**(a)**
+```{r, echo = FALSE, warning=FALSE}
+alpha = 0.10
+the.CIs = confint(new.model,level = 1-alpha)
+round(the.CIs,4)
+```
+
+The confidence interval for $\beta_{0}$ is `r round(the.CIs[1,],4)`.  
+The confidence interval for $\beta_{1}$ is `r round(the.CIs[2,],4)`.  
+The confidence interval for $\beta_{2}$ is `r round(the.CIs[3,],4)`.
+
+**(b)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+The confidence interval for $\beta_{2}$ is `r round(the.CIs[3,],4)`.  
+It means we are $90\%$ confident that when the average length of stay for patients increases by 1 day, the estimated percentage of patients who get a secondary infection during their hospital stay will increase between  $`r round(the.CIs[3,1],4)`$ and `r round(the.CIs[3,2],4)` days on average.
+
+**(c)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+Yes, because the confidence interval of $X_{2}$ or $Stay$ does not contain 0.
+
+**(d)**
+```{r, echo = FALSE, warning=FALSE}
+the.summary=summary(new.model)
+the.coef=the.summary$coefficients
+round(the.coef,4)
+```
+
+test statistic: $t_{s}=\frac{\hat{\beta_{2}}-0}{SE\{\hat{\beta_{2}}\}}$  
+degree of freedom: `r length(new.model$residuals)-length(new.model$coefficients)`  
+$H_{0}$:$\beta_{2}=0$.  
+$H_{A}$:$\beta_{2}\neq 0$.  
+p-value is `r round(the.coef[3,4],4)` and is small enough for us to reject $H_{0}$. As a result, $\beta_{2}\neq0$,which shows a significant linear relationship between $X_{2}$ and $Y$.
+
+**(e)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+p-value in (d) is `r round(the.coef[3,4],4)`. It means if $H_{0}$ was true: $\beta_{2}=0$ and there is no linear relationship between $Stay$ and $InfctRsk$, we will observe our data or more extreme with the probability of `r round(the.coef[3,4],4)`.
+
+### Problem 5
+**(a)**
+```{r, echo = FALSE, warning=FALSE}
+new.model=lm(data=the.newset,InfctRsk~MedSchool+Stay+MedSchool*Stay)
+the.coef=new.model$coefficients
+```
+
+The model with an interaction term is: $\hat{y}=`r round(the.coef[1],4)``r round(the.coef[2],4)`X_{1}+`r round(the.coef[3],4)`X_{2}+`r round(the.coef[4],4)`X_{1}X_{2}$
+
+**(b)**
+```{r, echo = FALSE, warning=FALSE}
+alpha1 = 0.01
+the.CIs1 = confint(new.model,level = 1-alpha1)
+alpha2 = 0.05
+the.CIs2 = confint(new.model,level = 1-alpha2)
+alpha3 = 0.10
+the.CIs3 = confint(new.model,level = 1-alpha3)
+```
+
+The confidence intervals of $\beta$s are as follows:  
+```{r, echo = FALSE, warning=FALSE}
+round(the.CIs1,4)
+round(the.CIs2,4)
+round(the.CIs3,4)
+```
+
+**(c)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+$X_{2}$ or $Stay$ should be retained for the model because its confidence interval does not contain $0$.
+
+**(d)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+When $X_{1}$ or $X_{Yes}$ changes by 1 unit we can expect the largiest change in $Y$, though it varies fluctuately.
+
+### Problem 6
+**(a)**
+```{r, echo = FALSE, warning=FALSE}
+the.model=lm(data=fish,Length~Age+Temp)
+the.e_i=the.model$residuals
+the.SWtest=shapiro.test(the.e_i)
+the.SWtest
+```
+```{r, echo = FALSE, warning=FALSE}
+qqnorm(the.model$residuals)
+qqline(the.model$residuals)
+```
+
+This plot has most of the points very close to the line, with several possible outliers.  
+$H_{0}$: The errors are normally distributed.  
+$H_{A}$: The errors are not normally distributed.  
+The p-value of $e_{i}$ is `r round(the.SWtest$p.value,4)`. 
+It is relatively large, so we fail to reject $H_{0}$. As a result, the errors are approximately normal.
+
+**(b)**
+```{r, echo = FALSE, warning=FALSE}
+qplot(data=fish,x=the.model$fitted.values,y=the.model$residuals)+ggtitle("residuals vs fitted values")+xlab("fitted values")+ylab("residuals")+geom_hline(yintercept = 0, col='purple')
+```
+```{r, echo = FALSE, warning=FALSE}
+Group = rep("Lower",nrow(fish))
+Group[fish$Length < median(fish$Length)] = "Upper"
+Group = as.factor(Group) #Changes it to a factor, which R recognizes as a grouping variable.
+fish$Group = Group
+the.FKtest= fligner.test(the.model$residuals, fish$Group)
+the.FKtest
+```
+
+$H_{0}$: $\sigma^{2}_{lower}=\sigma^{2}_{upper}$.  
+$H_{A}$: $\sigma^{2}_{lower}\neq \sigma^{2}_{upper}$.  
+The p-value of variance of $e_{i}s$ is `r round(the.FKtest$p.value,4)`.   
+Though p-value is large for us to fail to reject $H_{0}$ and come to the conclusion that the error variance is constant, the plot
+of residuals vs. fitted values shows variety and symmetry with values of y, and that's where Fligner-Killeen test will fail.
+
+**(c)**
+```{r, echo = FALSE, warning=FALSE}
+CD=cooks.distance(the.model)
+cutoff=0.10
+plot(CD,ylab="Cook's Distance")+abline(h=cutoff,col='purple')
+```
+
+I used cook's distance to find outliers, and outliers are as follows,
+
+```{r, echo = FALSE, warning=FALSE}
+the.outliers=fish[which(CD>cutoff),]
+the.outliers
+```
+
+**(d)**
+```{r, echo = FALSE, warning=FALSE}
+the.newset=fish[-which(CD>cutoff),]
+new.model=lm(data=the.newset,Length~Age+Temp)
+the.matrix=matrix(c(the.model$coefficients[2],the.model$coefficients[3],
+                    new.model$coefficients[2],new.model$coefficients[3]),byrow=TRUE,nrow=2)
+rownames(the.matrix)=c('Old model','new Model')
+colnames(the.matrix)=c('Age','Temp')
+```
+
+The slope of two models are as follows,  
+
+```{r, echo = FALSE, warning=FALSE}
+round(the.matrix,4)
+```
+
+The absolute difference is `r round((the.matrix[2,2]-the.matrix[1,2]),4)`.
+
+### Problem 7
+**(a)**
+```{r, echo = FALSE, warning=FALSE}
+alpha = 0.10
+the.CIs = confint(new.model,level = 1-alpha)
+round(the.CIs,4)
+```
+
+The confidence interval for $\beta_{0}$ is `r round(the.CIs[1,],4)`.  
+The confidence interval for $\beta_{1}$ is `r round(the.CIs[2,],4)`.  
+The confidence interval for $\beta_{2}$ is `r round(the.CIs[3,],4)`.
+
+**(b)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+The confidence interval for $\beta_{1}$ is `r round(the.CIs[2,],4)`.  
+It means we are $90\%$ confident that when the age of the fish increases by 1 day, the length of the fish will increase between $`r round(the.CIs[2,1],4)`$ and $`r round(the.CIs[2,2],4)`$mm on average, holding the Temperature constant.  
+
+**(c)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+Yes, because the confidence of Age does not contain 0.
+
+**(d)**
+```{r, echo = FALSE, warning=FALSE}
+the.summary=summary(new.model)
+the.coef=the.summary$coefficients
+round(the.coef,4)
+```
+
+test statistic: $t_{s}=\frac{\hat{\beta_{2}}-0}{SE\{\hat{\beta_{2}}\}}$  
+degree of freedom: `r length(new.model$residuals)-length(new.model$coefficients)`  
+$H_{0}$:$\beta_{2}=0$.  
+$H_{A}$:$\beta_{2}\neq 0$.  
+p-value is `r round(the.coef[3,4],4)`.  
+When $\alpha=0.01$, p-value is large enough to reject $H_{0}$. As a result, $\beta_{2}\neq0$,which shows a significant linear relationship between $X_{2}$ and $Y$.  
+When $\alpha=0.05$ or $\alpha=0.10$, p-value is not large enough to reject $H_{0}$. As a result, $\beta_{2}=0$,which shows there is not a significant linear relationship between $X_{2}$ and $Y$.  
+
+**(e)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+p-value in (d) is `r round(the.coef[3,4],4)`. It means if $H_{0}$ was true: $\beta_{2}=0$ and there is no linear relationship between $Temp$ and $Length$, we will observe our data or more extreme with the probability of `r round(the.coef[3,4],4)`.
+
+### Problem 8
+**(a)**
+```{r, echo = FALSE, warning=FALSE}
+new.model=lm(data=the.newset,Length~Age+Temp+Age*Temp)
+the.coef=new.model$coefficients
+```
+
+The model with an interaction term is: $\hat{y}=`r round(the.coef[1],4)`+`r round(the.coef[2],4)`X_{1}`r round(the.coef[3],4)`X_{2}`r round(the.coef[4],4)`X_{1}X_{2}$
+
+**(b)**
+```{r, echo = FALSE, warning=FALSE}
+alpha1 = 0.01
+the.CIs1 = confint(new.model,level = 1-alpha1)
+alpha2 = 0.05
+the.CIs2 = confint(new.model,level = 1-alpha2)
+alpha3 = 0.10
+the.CIs3 = confint(new.model,level = 1-alpha3)
+```
+
+The confidence intervals of $\beta$s are as follows:  
+```{r, echo = FALSE, warning=FALSE}
+round(the.CIs1,4)
+round(the.CIs2,4)
+round(the.CIs3,4)
+```
+
+**(c)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+None of the $\beta$s should be retained for the model because the confidence interval of them all contain $0$.
+
+**(d)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+When $X_{2}$ or $Temp$ changes by 1 unit, we can expect the largiest change in Y because it has the largiest confidence interval. 
+
+### Problem 9
+**(a)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+True. $R^{2}=\frac{SSTO-SSE}{SSTO}$ and $SSTO$ maintains the same given a specific sample, while $SSE$ of the large model is always smaller than that of the small model, so the model with the most X variables has the larggest $R^{2}$.
+
+**(b)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+True. If CI of a $\beta_{i}$ does not contain $0$, it means when $X_{i}$ increases by $1$, we are $1-\alpha\%$ confident that $Y$ will increase between the interval of CI, and that does not equal $0$, suggesting a significant linear relationship between $X_{i}$ and $Y$. 
+
+**(c)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+True. Outliers chosen by cook's distance are those digress from the regression line fitted by other data a lot, so outliers may significantly change the slope. 
+
+**(d)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+True. $AIC=-2LL+2p$ and we maximize $LL$ to get better coefficients for the model, which means we have to minimize $AIC$.
+
+### R Appendix
+```{r, ref.label=knitr::all_labels(),echo=TRUE,eval=FALSE}
+```

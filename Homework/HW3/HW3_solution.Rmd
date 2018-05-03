@@ -1,0 +1,211 @@
+---
+title: "STA 101 - HW 3"
+author: "Mingyi Xue"
+date: "April 21, 2018"
+output: html_document
+---
+
+
+### Load databases into current workingspace:
+```{r, echo = FALSE,warning=FALSE}
+salary3 <- read.csv("~/STA 101/Homework/HW3/salary3.csv")
+head(salary3,n=3)
+```
+
+### Load packages:
+```{r}
+library(ggplot2)
+library(MPV)
+library(leaps)
+```
+
+```{r, echo = FALSE,warning=FALSE}
+All.Criteria = function(the.model){
+  p = length(the.model$coefficients)
+  n = length(the.model$residuals)
+  the.BIC = BIC(the.model)
+  the.LL = logLik(the.model)
+  the.AIC = AIC(the.model)
+  the.PRESS = PRESS(the.model)
+  the.R2adj = summary(the.model)$adj.r.squared
+  the.results = c(the.LL,p,n,the.AIC,the.BIC,the.PRESS,the.R2adj)
+  names(the.results) = c("LL","p","n","AIC","BIC","PRESS","R2adj")
+  return(the.results)
+}
+```
+
+
+### Problem 1
+**(a)**
+```{r, echo = FALSE, warning=FALSE}
+smaller.model = lm(sl ~ yd + dg + sx, data = salary3)
+anova.small = anova(smaller.model)
+larger.model = lm(sl ~ yd + dg + sx + rk, data = salary3)
+anova.large = anova(larger.model)
+anova.sum=anova(smaller.model,larger.model)
+anova.sum
+smaller.model
+larger.model
+```
+
+$H_{0}$:$\beta_{4}=\beta_{5}=0$  
+$H_{A}$:At least one $\beta_{i}\neq 0$, where $i=4, 5$  
+test statistics:$F_{s}=\frac{\frac{SSE_{S}-SSE_{L}}{dof_{S}-dof_{L}}}{\frac{SSE_{L}}{dof_{L}}}$  
+$F_{s}=`r round(anova.sum[2,5],4)`$, $p-value=`r anova.sum[2,6]`$  
+
+**(b)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+$p-value=`r anova.sum[2,6]`<<\alpha=0.01$, it is small enough for us to reject $H_{0}$, as a result, not all $\beta_{i} = 0$, where $i=4, 5$ and we cannot drop $X_{4}$ from the full model. 
+
+**(c)**
+```{r, echo = FALSE, warning=FALSE}
+smaller.model = lm(sl ~ yd + rk, data = salary3)
+anova.sum=anova(smaller.model,larger.model)
+anova.sum
+```
+
+$H_{0}$:$\beta_{2}=\beta_{3}=0$  
+$H_{A}$:at least one $\beta_{i}\neq 0$, where $i=2,3$  
+test statistics:$F_{s}=\frac{\frac{SSE_{S}-SSE_{L}}{dof_{S}-dof_{L}}}{\frac{SSE_{L}}{dof_{L}}}$  
+$F_{s}=`r round(anova.sum[2,5],4)`$, $p-value=`r anova.sum[2,6]`$  
+
+**(d)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+$p-value=`r anova.sum[2,6]`>>\alpha=0.01$, it is large enough for us to fail to reject $H_{0}$, as a result $\beta_{2}=\beta_{3}=0$ and we can drop $X_{2}$ and $X_{3}$ from the full model. 
+
+**(e)**
+```{r, echo = FALSE, warning=FALSE}
+the.coef=smaller.model$coefficients
+smaller.model
+```
+
+We can drop $X_{2}$, $X_{3}$ and cannot drop $X_{4}$, so the model is $Y$~$X_{1}+X_{4}$ and the estimated linear equation is $\hat{y}=`r round(the.coef[1],4)`+`r round(the.coef[2],4)`X_{1}+`r round(the.coef[3],4)`X_{4associate}+`r round(the.coef[4],4)`X_{4full}$.
+
+### Problem 2
+```{r, echo = FALSE, warning=FALSE}
+Partial.R2 = function(small.model,big.model){
+  SSE1 = sum(small.model$residuals^2)
+  SSE2 = sum(big.model$residuals^2)
+  PR2 = (SSE1 - SSE2)/SSE1
+  return(PR2)
+}
+```
+**(a)**
+```{r, echo = FALSE, warning=FALSE}
+small.model=lm(sl~yd, data=salary3)
+big.model=lm(sl~yd+rk, data=salary3)
+partial.R2=Partial.R2(small.model, big.model)
+```
+
+$R^2\{X_{1},X_{4} | X_{1}\}=`r round(partial.R2,4)`$. It means we can reduce the error by `r round(partial.R2*100, 2)`% if we add $X_{4}$ to the model only with $X_{1}$.
+
+**(b)**
+```{r, echo = FALSE, warning=FALSE}
+small.model=lm(sl~rk, data=salary3)
+big.model=lm(sl~yd + rk, data=salary3)
+partial.R2=Partial.R2(small.model, big.model)
+```
+
+$R^2\{X_{1} | X_{4}\}=`r round(partial.R2,4)`$. It means we will reduce the error by `r round(partial.R2*100, 2)`% if we add infomation of years of experience $X_1$ to the model only with the rank of subject $X_{4}$.
+
+**(c)**
+```{r, echo = FALSE, warning=FALSE}
+small.model=lm(sl~yd+rk, data=salary3)
+big.model=lm(sl~yd+dg+sx+rk, data=salary3)
+partial.R2=Partial.R2(small.model, big.model)
+```
+
+$R^2\{X_{1},X_{2},X_{3},X_{4} | X_{1},X_{4}\}=`r round(partial.R2,4)`$. It means we can reduce the error by `r round(partial.R2*100, 2)`% if we add $X_{2}$, $X_{3}$ to the model with $X_{1}$, $X_{4}$.
+
+**(d)**
+```{r, echo = FALSE, warning=FALSE}
+small.model=lm(sl~dg+sx, data=salary3)
+big.model=lm(sl~yd+dg+sx+rk, data=salary3)
+partial.R2=Partial.R2(small.model, big.model)
+```
+
+$R^2\{X_{1},X_{4} | X_{2},X_{3}\}=`r round(partial.R2,4)`$. It means we can reduce the error by `r round(partial.R2*100, 2)`% if we add infomation of years of experience and rank of subjects $X_{1}+X_{4}$ to the model only with the infomation of highest degree earned by subjects and gender $X_{2}+X_{3}$.
+
+**(e)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+Yes.   
+First, when adding $X_{2}$, $X_{3}$ to the model in I(e), we can only reduce the error by $2.9\%$. It is small compared to the costs and expenses brought about by adding these two parameters. So we shouldn't add $X_{2}$, $X_{3}$.  
+Second, when adding $X_{4}$ to the model $Y$~$X_{1}$, we can reduce error by $57.24\%$. So it is reasonable for us to include $X_{4}$ in the model.
+
+### Problem 3
+Rename columns of `salary3` for convenience:  
+```{r, echo = FALSE, warning=FALSE}
+names(salary3) = c("Y","X1","X2","X3","X4" )
+head(salary3,n=3)
+```
+
+```{r, echo = FALSE, warning=FALSE}
+all.models = c("Y ~ X1", "Y ~ X2", "Y ~ X3", "Y ~ X4",
+"Y ~ X1 + X2", "Y ~ X1 + X3", "Y ~ X1 + X4",
+"Y ~ X1 + X2 + X4", "Y ~ X1 + X3 + X4",
+"Y ~ X1 + X2 + X3 + X4")
+```
+
+**(a)**
+```{r, echo = FALSE, warning=FALSE}
+all.model.crit = t(sapply(all.models,function(M){
+  current.model = lm(M,data = salary3)
+  All.Criteria(current.model)
+}))
+round(all.model.crit,4)
+```
+
+**(b)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+The model $Y$~$X_{4}$ is the best model since it has the lowest $BIC=`r round(all.model.crit[4,5],4)`$.
+
+**(c)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+The model $Y$~$X_{1}+X_{4}$ is the best model since it has the lowest $AIC=`r round(all.model.crit[7,4],4)`$.
+
+**(d)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+The model $Y$~$X_{1}+X_{4}$ is the best model since it has the lowest $PRESS=`r round(all.model.crit[7,6],4)`$.
+
+**(e)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+The model $Y$~$X_{1}+X_{3}+X_{4}$ is the best model since it has the highest $R^{2}_{adj}=`r round(all.model.crit[9,7],4)`$.
+
+**(f)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+If I were trying to build a predictive model, I would choose $Y$~$X_{1}+X_{3}+X_{4}$ because the predictive model predicts Y as best as we can and usually is overfit. $R^2_{adj}$ will give the largest predictive model.
+
+**(g)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+If I were trying to build a correct model, I would choose $Y$~$X_{4}$ because the correct model only includes significant $X$'s and is usually underfit. $BIC$ will give the smallest predictive model.
+
+### R Appendix
+```{r, ref.label=knitr::all_labels(),echo=TRUE,eval=FALSE}
+```

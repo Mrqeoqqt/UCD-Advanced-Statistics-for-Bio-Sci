@@ -1,0 +1,56 @@
+---
+title: "How to Install R and RStudio in Ubuntu 16.04"
+author: "Mingyi Xue"
+date: "April 4, 2018"
+output: html_document
+---
+
+Developers can download R and RStudio easily from website <https://cloud.r-project.org/> and <http://rstudio.org/> perspectively at several clicks, except that unfortunately and miserably the installation path have chinese characters. However, you have to type commands in terminal under Linux operating system.
+
+## 1. add mirror source to system sources list
+
+```
+sudo echo "deb http://cran.rstudio.com/bin/linux/ubuntu xenial/" | sudo tee -a /etc/apt/sources.list
+```
+
+where linux xenial means linux 16.04, developers can fix this parameter according to the linux version on PC or virtual machine.
+
+## 2. install r-base
+
+```
+sudo apt-get update
+sudo apt-get install r-base r-base-dev
+```
+
+Use command "which" to find where r has been installed.
+
+```
+which r
+```
+
+## 3. install rstudio
+
+Download latest released version of rstudio, for example, I downloaded rstudio-xenial-1.1.442-amd64.deb, which is for 64-bit ubuntu 16.04.
+
+```
+sudo apt-get install gdebi-core
+sudo gdebi -n rstudio-xenial-1.1.442-amd64.deb
+```
+
+Use command "which" again to find where rstudio has been installed.
+
+```
+which rstudio
+```
+
+Then create a soft link on desktop or /home/\<hostname\> for a quick start.
+
+```
+sudo ln -s <source_path> <destination_path>
+```
+
+Finally, remove the .deb file
+
+```
+rm rstudio-xenial-1.1.442-amd64.deb
+```

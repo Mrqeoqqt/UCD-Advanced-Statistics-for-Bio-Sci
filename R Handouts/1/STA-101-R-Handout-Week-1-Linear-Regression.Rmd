@@ -1,0 +1,363 @@
+---
+title: "STA 101 - Linear Regression"
+author: "Dr. Erin K. Melcon"
+output: html_document
+---
+## The Data
+We'll be working with a built-in data set in `R`, in the library `MASS`.  To access it, run the following commands:
+```{r}
+library(MASS) # This loads the package where the dataset is
+head(cats) #The first 6 rows
+names(cats) #The names of the columns)
+```
+For your homework, you would have to load in the data as usual.
+
+The name of the dataset is `cats`.  This dataset contains data from a study of the body weight (in kg), heart weight (in grams), and gender of cats.
+
+For example, it is reasonable to believe that the body weight of a cat would depend on its height weight.  This makes my $Y$ body weight (column name is `Bwt`), and my $X$ heart weight (column name is `Hwt`). 
+
+### 1.  Useful plots and summary statistics.
+A useful plot in this case is a scatter plot:
+```{r}
+library(ggplot2)
+qplot(Hwt, Bwt, data = cats) + ggtitle("Body vs. Heart Weight") + xlab("Heart weight in grams") + ylab("Body weight in kg")
+```
+
+The means and standard deviations of each column may also be of interest.  We can use the function `by` to get these easily, and the general format is:
+
+`apply(dataset,2,functionname)`
+
+where `2` denotes find the result of `functioname` by column (`1` would denote by row).  Now, we have a column that is categorical, so we would want to exclude that column.  To exclude a column in R, you need to know what number column you want to exclude.  The general format for excluding the `i`th column is:
+
+`dataset[,-i]`
+
+So to find the mean and standard deviation by column we could do:
+```{r}
+apply(cats[,-1],2,mean)
+apply(cats[,-1],2,sd)
+```
+Note I did -1 because the first column was the categorical variable I wanted to exclude.
+
+### 2. Fitting the linear model
+If you have a dataset with named columns, you can easily use the function `lm()`.  The general format for fitting a linear model is:
+
+`lm(nameofYcolumn ~ nameofXcolumn, data = dataset`
+
+now, this prints out a bunch of stuff right away, but we often want to save it and use pieces of it later.  So I would recommend doing the following command instead:
+
+`the.model = lm(nameofYcolumn ~ nameofXcolumn, data = dataset)`
+
+Notice this does not print out anything right away, but if we wanted to see the results you could now type `the.model` in your console and press enter.
+
+The function `lm` calculates many things.  To see the names of all the things we use
+
+`names(the.model)`
+
+To access any of these, you would use the follow
+
+`the.model$thename`
+
+The ones we are usually interested in are:
+
+* `residuals`: This can be accessed by `the.model$residuals`.  It holds all the values of $\hat{\epsilon}_i$, the estimated errors or residuals.  
+* `coefficients`: This can be accessed by `the.model$coefficients`.  It holds all the values of $\beta_i$, which in this case are $\beta_0$ and $\beta_1$.  
+* `fitted.values`:  This can be accessed by `the.model$fitted.values`.  It holds all the values of the predicted $Y_i$'s, or $\hat{Y}_i$.  
+
+For example, to fit a linear model to our cat dataset we would use:
+```{r}
+the.model = lm(Bwt ~ Hwt, data =cats)
+```
+
+Then, to see the coefficients (the estimated $\beta$'s) we would use:
+
+```{r}
+the.model$coefficients
+the.betas = round(the.model$coefficients,4)
+```
+The second command saves the coefficients to a vector, which I can then access by typing the name `the.betas`, or I can access the `i`th component of that vector as:
+
+`the.betas[i]`
+
+For example, to see only the first estimated beta ($\hat{\beta}_0$),  I would type `the.betas[1]`.  To see the second estimated beta ($\hat{\beta}_1$) I would type `the.betas[2]`.  
+
+Using "in line R code", and a bit of LaTex, I could then type:
+
+The estimated regression function is: $\hat{y} = `r the.betas[1]` + (`r the.betas[2]`)X_1$.
+
+### 3. Estimating values and errors
+To estimate a particular value in R, I often like to save the value of $X$ I'm going to predict at in R first, then use the saved `the.betas` to find the answer.  For example, if we know the heart weight of a cat was 2g, then we could estimate the body weight as follows:
+```{r}
+xs = 2
+ys = the.betas[1] + xs*the.betas[2]
+```
+To see what our estimate is we could type `ys`, or use "in line code": The estimated value is `r ys` on average.
+
+To identify which data points have a particular value of $X$, say `xi`, we can use the following general format:
+
+`dataset[which(dataset$nameofXcolumn == xi),]`
+
+For example, to find the values where heart weight was 7, we could do:
+
+```{r}
+cats[which(cats$Hwt == 7), ]
+```
+This uses a few things: 
+To subset a dataset, we use `[i,j]` after the name of the dataset, where `i` is the row we want, and `j` is the column we want.  If we leave `i` or `j` blank, this says "take all the rows/columns".  
+The function `which` returns the location of the value matching the question.  We asked "which cat heart weight was equal to 7", and to get the location that corresponded to `which(cat$Hwt == 7)`
+
+We can replace `==` with `<`, `>`, `<=`, or `>=` to get less than some value, larger than some value, less than or equal to, or greater than or equal to.
+
+So by doing: `cats[which(cats$Hwt == 7), ]`  this says in English "Give me the row of cats where the heart weight was exactly 8, and all of the columns".
+
+Then, we could save that, and use the corresponding $Y$ value to find our error:
+```{r}
+xy = cats[which(cats$Hwt == 7), ]
+ei = xy$Bwt - (the.betas[1] + the.betas[2]*xy$Hwt)
+```
+Thus, the error is: `r ei`.
+
+### 4. Plotting the regression line
+To plot the data along with the regression line, we can use the function `plot` and `abline` using R's basic functions:
+
+`plot(nameofXcolumn,nameofYcolumn,data = dataset, main = "Main title",xlab = "Title for X axis",ylab = "Title for Y axis")`
+`abline(the.model,col = "purple",lwd = 2)`
+
+The function `abline` adds a line to the plot using the linear model created, `col` specifies the color, and `lwd` specifics the width of the line.  For example, in our cats data:
+
+```{r}
+plot(cats$Hwt,cats$Bwt, main = "Heart vs. Body weight",xlab = "Heart weight in grams",ylab = "Body weight in kilo grams",pch = 19)
+abline(the.model,col = "purple",lwd = 2)
+```
+
+To use ggplot 2, the general format is:
+
+`ggplot(dataset,aes(nameofXcolumn,nameofYcolumn)) + geom_point(shape = 19) +`
+  `geom_smooth(method='lm',se= FALSE) + ggtitle("The main title") + ylab("The label for the y axis") +`
+  `xlab("The label for the x axis")`
+
+For example:
+```{r}
+ggplot(cats,aes(Hwt,Bwt)) + geom_smooth(method='lm',se = FALSE)+geom_point(shape = 19) + ggtitle("Linear Relationship between Bodyweight and Heartweight") + xlab("Heart weight in grams") + ylab("Body weight in kg")
+```
+
+### 5. Finding the sample correlation
+The general format to find the sample correlation ($r$) between two numeric variables is:
+
+`cor(dataset$numericcolumn1,dataset$numericcolumn2)`
+For example;
+
+```{r}
+cor(cats$Bwt,cats$Hwt)
+r = round(cor(cats$Bwt,cats$Hwt),4)
+```
+Using the in-line code, we could say: The sample correlation is `r r` (since I saved it as the object `r`).
+
+## Linear Regression with a Categorical explanatory variable
+
+### 1. Useful plots and summary statistics
+We have already gone over these, but as a reminder finding the mean per group, standard deviation per group, and grouped boxplots are often useful in this case.
+
+### 2. Fitting the model 
+The good news is that the way to fit the model has not changed in R.  We still use the same formulaic approach: 
+
+`the.model = lm(nameofYcolumn ~ nameofXcolumn, data = dataset)`
+
+and we will get the estimated $\beta$'s from the result, the same as before.  
+
+For example, lets look at the `cats` dataset but use `sex` as an explanatory variable.  Our model is now:
+
+```{r}
+the.model = lm(Bwt ~ Sex, data = cats)
+the.betas = round(the.model$coefficients,4)
+```
+But an important thing that we need to figure out is - what category of $X$ was set to be zero?  I.e, we need to know for $X_1$, what level of $X$ is represented when $X_1 = 1$, and what level of $X$ is represented when $X_1 = 0$?
+
+We can figure this out one of two ways.  R sets the first category in a categorical random variable to be zero, and all the rest to be non-zero.  The unique levels of $X$ can be found with:
+
+`unique(dataset$categoricalXcolumn)`
+
+which returns all the unique values of $X$.  This should not be used on a numeric random variable!
+
+So, in our dataset,
+
+```{r}
+unique(cats$Sex)
+```
+The category that was set-to-zero was `F`, or female.
+
+Another way to figure this out is by looking at the result of fitting the model:
+```{r}
+the.model
+```
+Notice that it lists `SexM`, and then the value of $\hat{\beta}_1$ directly under that.  This means that the name of the column was `Sex`, and the category that was not set to zero was `M`. 
+
+### 3. Plotting the individual regression "lines"
+When we have a categorical X, we really have several different regression lines (with possibly different slopes).  Fortunately, `ggplot2` has a relatively simple command to plot the serparate data points on one plot:
+
+`ggplot(dataset,aes(y = Yname, x =Xnumname,colour=Xcatname,shape=Xcatname)) + geom_point() +`
+` geom_smooth(method="lm",fill = NA)`
+
+This also gives unique colors to each group, as well as unique points (controlled by `colour = categoricalXcolumn`, `shape = categoricalXcolumn`)
+
+So for our data, we would have:
+
+```{r}
+ggplot(cats,aes(y = Bwt, x =Sex,colour=Sex,shape=Sex)) + geom_point() + geom_smooth(method="lm",fill = NA)
+
+```
+
+I am still working on how to add the appropriate lines, and will update this handout when/if I figure it out!
+
+### 4. Predicting an outcome
+Here we will learn a new way to predict an outcome (this also works for a numeric $X$ and $Y$), using the function `predict`.  The general format is:
+
+`x.star = data.frame(X1column = "Cat1")`
+`predict(the.model, x.star)`
+
+Where you would have to replace `X1column` with the name of the categorical column, and `Cat1` with the name of the category you want (leave the quotes!)
+
+```{r}
+x.star = data.frame(Sex = "F")
+predict(the.model,x.star)
+```
+
+## Multiple linear regression (Multiple X's, a mix of categorical and numeric)
+
+### 1. Useful plots and summary statistics
+In general, you use the same plots as before, and typically focus on one $X$ and your $Y$.  However, you can plot an ugly plot of all the data at once using:
+
+`plot(dataset)`
+
+**If you get an error, you might need to change your categorical column to a "factor" in R**.  As a reminder, you do this using the following command:
+
+`dataset$categoricalXcolumn = as.factor(dataset$categoricalXcolumn)`
+
+For example, in our `cats` dataset, we get:
+
+```{r}
+plot(cats)
+```
+
+### 2. Fitting the model (no interaction)
+Again, the way to fit the model has not changed in R.  We still use the same formulaic approach, but we add column names.  So our "general format" would be:
+
+`the.model = lm(Ycolumnname ~ X1columnname + X1columnname, data = dataset)`
+Note, you would just keep adding column names if you have more than 2, separating them by a +.  
+
+A shortcut for adding "every column other than the Y variable" is:
+
+`the.model = lm(Ycolumnname ~ . ,data = dataset)`
+
+So for our example, we could use either:
+```{r}
+the.model = lm(Bwt ~ Hwt + Sex,data = cats)
+the.model = lm(Bwt ~ .,data= cats)
+the.betas = round(the.model$coefficients,4)
+```
+
+To view the model and coefficients we could then type `the.model`. 
+
+### 3. Plotting the individual regression "lines"
+When we have a categorical X, we really have several different regression lines (with possibly different slopes).  Fortunately, `ggplot2` has a relatively simple command to plot the serparate lines on one plot:
+
+`ggplot(dataset,aes(y = Yname, x =Xnumname,colour=Xcatname,shape=Xcatname)) +`     `geom_point()geom_smooth(method="lm",fill = NA)`
+
+**Note, this works very well for two $X$'s, one that is numeric and one that is categorical.  It does not work so well otherwise**
+
+For example, in our dataset:
+
+```{r}
+ggplot(cats,aes(y = Bwt, x =Hwt,colour=Sex,shape=Sex)) + geom_point() + geom_smooth(method="lm",fill = NA)
+```
+
+### 4. Predicting an outcome
+The only thing that changes is that we have to add the rest of the variables we are using in the `x.star` command:
+
+`x.star = data.frame(X1column =  , X2column = )`
+`predict(the.model, x.star)`
+
+I've left them blank because you will replace them with either numbers, or category names in quotes (depending on what your X variable are).   You could keep adding more than 2 variables by separating the names by commas. 
+
+Lets say I want to predict the bodyweight of a female cat with a heart weight of 2g:
+
+```{r}
+x.star = data.frame(Sex = "F",Hwt = 2)
+predict(the.model,x.star)
+```
+
+### 5. Adding interaction terms
+To add an interaction term, the format is:
+
+`the.model = lm(Yname ~ X1name + X2name + X1name*X2name,data = dataset)`
+
+Interaction terms are specificed by "multiplying the column names". So for our dataset,
+
+```{r}
+the.model = lm(Bwt ~ Hwt + Sex + Hwt*Sex,data = cats)
+the.betas = round(the.model$coefficients,4)
+```
+I can still predict a value of $Y$ as usual:
+
+```{r} 
+predict(the.model,x.star)
+```
+But, if I were to try and plot the lines, ggplot2 would not realize it should also use the interaction (i.e. the plot would not change, when it should).  I'm seeing if there is a reasonable work around to this.
+
+
+### 6.  Finding SSR, SSE, SSTO, $R^2$, and $R^2_{adj}$
+For any linear model we have created with `lm`, we can find the ANOVA table in R with the function `anova`.   First we'll look at simple linear regression, and I'll use the model with cat heart weight and body weight.
+
+```{r}
+the.model = lm(Bwt ~ Hwt,data = cats)
+```
+
+The general format once you have fit the model is:
+
+`anova.table = anova(the.model)`
+
+We can view this by typing `anova.table` in R:
+
+```{r}
+anova.table = anova(the.model)
+anova.table
+```
+Notice there are (in this case) 2 rows, and 5 columns.
+
+The first row is $SSR$, whose name is defaulted to the name of the X column.  The second is $SSE$, whose name is defaulted to be "residuals".  To access a particular row and column, we can use the general command:
+
+`anova.table[i,j]`
+
+where `i` is the row you want, and `j` is the column you want.
+
+To get the value of SSTO, we want to sum the second column.  To do this, we can use the following code:
+
+`SSTO = sum(anova.table[,2])`
+
+So to find SSR, SSE, and SSTO we can do:
+```{r}
+SSR = anova.table[1,2]
+SSE = anova.table[2,2]
+SSTO =  sum(anova.table[,2])
+```
+
+Thus, SSE = `r SSE`, SSR = `r SSR`, and SSTO = `r SSTO`.  
+
+To find $R^2$, $R^2_{adj}$, we can use the `summary` function, which automatically calculates a bunch of things, including $R^2$, $R^2_{adj}$.
+
+The general format is:
+
+`the.things = summary(the.model)`
+`R2 = the.things$r.squared`
+`R2adj =  the.things$adj.r.squared`
+
+To see the names of other things calculated, we could type the command `names(the.things)`. 
+
+```{r}
+the.things = summary(the.model)
+R2 = the.things$r.squared
+R2adj =  the.things$adj.r.squared
+```
+For example, my values of $R^2$, $R^2_{adj}$ are : $R^2$: `r R2`, and  $R^2_{adj}$ : `r R2adj`.
+
+Note:  When you have more than 1 X, or a categorical variable with more than one categorical, you will have more than 2 rows in the anova table.  We will talk about this situation later.
+

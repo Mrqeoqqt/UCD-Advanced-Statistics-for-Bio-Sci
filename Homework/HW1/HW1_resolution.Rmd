@@ -1,0 +1,380 @@
+---
+title: "STA 101 - HW 1"
+author: "Mingyi Xue"
+date: "April 5, 2018"
+output: html_document
+---
+
+### Load databases into current workingspace:
+
+```{r, echo = FALSE, warning=FALSE}
+hospital <- read.csv("~/STA 101/Homework/HW1/hospital.csv", header = TRUE)
+head(hospital, n=3)
+poverty <- read.csv("~/STA 101/Homework/HW1/poverty.csv", header = TRUE)
+head(poverty, n=3)
+rehab <- read.csv("~/STA 101/Homework/HW1/rehab.csv", header = TRUE)
+head(rehab, n=3)
+```
+
+### Load package `ggplot2`:
+
+```{r}
+library(ggplot2)
+```
+
+### Problem 1
+**(a)**
+```{r, echo = FALSE, warning=FALSE}
+qplot(PovPct, Brth15to17,data = poverty)+
+  ggtitle("Scatter plot of PovPCt and Birth15to17")+
+  xlab("Poverty percent")+
+  ylab("Birth Rate")
+```
+
+The plot suggests a linear relationship between PovPct and Brth15to17.
+
+**(b)**
+```{r, echo = FALSE, warning=FALSE}
+the.correlation = round(cor(poverty$Brth15to17, poverty$PovPct),4)
+```
+
+The estimated correlation between PovPct and Brth15to17 is `r the.correlation` and this suggests a strong linear relationship.
+
+**(c)**
+```{r, echo = FALSE, warning=FALSE}
+the.five = fivenum(poverty$PovPct)
+the.five
+```
+minimun:`r the.five[1]`  
+the first quartile:`r the.five[2]`  
+median:`r the.five[3]`  
+the third quartile:`r the.five[4]`  
+maximum:`r the.five[5]`  
+
+**(d)**
+```{r, echo = FALSE, warning=FALSE}
+ggplot(poverty,aes(y = Brth15to17,x = factor("")))+
+  geom_boxplot()+
+  ggtitle("Boxplot for Birth rate")+
+  ylab("Birth rate")+ 
+  xlab("")+
+  coord_flip()
+```
+
+The default criteria to set outliers in R is:  
+upper_boundary=the third quartile + (the third quartile - the first quartile) * 1.5  
+lower_boundary=the first quartile - (the third quartile - the first quartile) * 1.5  
+According to the boxplot of Brth15to17, there is an exremely large value outlier.  
+
+**(e)**
+```{r, echo = FALSE, warning=FALSE}
+the.mean = mean(poverty$PovPct)
+the.sd = sd(poverty$PovPct)
+the.left_boundary = round(the.mean - 3 * the.sd, 4)
+the.right_boundary = round(the.mean + 3 * the.sd, 4)
+```
+Use the formula:  
+the.left_boundary = mean - 3 * sd  
+the.right_boundary = mean + 3 * sd  
+An appropriate range for PovPct is from `r the.left_boundary` to `r the.right_boundary`.
+
+### Problem 2
+**(a)**
+```{r, echo = FALSE, warning=FALSE}
+the.line = lm(Brth15to17~PovPct, data = poverty)
+the.coef = round(the.line$coefficients,4)
+the.coef
+```
+
+The estimated linear regression line of Brth15to17 by PovPct is  
+$\hat{y}=`r the.coef[1]`+ `r the.coef[2]`X_{1}$
+
+**(b)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+The estimated slope is $\hat{\beta_{1}} = `r the.coef[2]`$. It means when the percent of the states population living in poverty increases by 1 percent, the estimated value of birth rate per 1000 females 15 to 17 years old will increase by `r the.coef[2]` percent on average.
+
+**(c)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+The estimated intercept is $\hat{\beta_{0}} = `r the.coef[1]`$. It is inapproriate because a state cannot be absolutely poverty-free in reality.
+
+**(d)**
+```{r, echo = FALSE, warning=FALSE}
+y_i = the.coef[1] + the.coef[2] * 10
+```
+
+The estimated average value of Brth15to17 is `r y_i` at PovPct equals 10.
+
+**(e)**
+```{r, echo = FALSE, warning=FALSE}
+the.summary = summary(the.line)
+```
+
+The value of $R^{2}$ is `r round(the.summary$r.squared, 3)`.  
+It means if we use linear regression model to estimate the value of Brth15to17 instead of the average value, the total error can be reduced by $53.3\%$.
+
+### Problem 3
+**(a)**
+```{r, echo = FALSE, warning=FALSE}
+ggplot(rehab, aes(x = fitness, y = days))+
+  geom_boxplot()+
+  xlab("fitness")+
+  ylab("days")+
+  ggtitle("Grouped boxplot of days by fitness level")+
+  coord_flip()
+```
+
+The grouped boxplot shows that there is a great difference between the groups because of little overlap.
+
+**(b)**
+```{r, echo = FALSE, warning=FALSE}
+ggplot(rehab, aes(x = factor(""), y = days))+
+  geom_boxplot()+
+  xlab("")+
+  ylab("days")+
+  ggtitle("Boxplot of days")+
+  coord_flip()
+```
+
+No outliers in $days$.
+
+**(c)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+There will be 3 $\beta$'s coreesponding to $fitness$.  
+$\beta_{0}$:the estimated average value of number of days for category $AboveAve$ to complete the therapy.  
+$\beta_{1}$:the estimated average difference of number of days to comlete the therapy between $Ave$ and $AboveAve$.   
+$\beta_{2}$:the estimated average difference of number of days to comlete the therapy between $BelowAve$ and $Ave$.  
+
+Corresponding $X_{i}$'s are X_Ave and X_Bel.
+
+**(d)**
+```{r, echo = FALSE, warning=FALSE}
+the.five = fivenum(rehab$days)
+```
+
+minimun:`r the.five[1]`  
+the first quartile:`r the.five[2]`  
+median:`r the.five[3]`  
+the third quartile:`r the.five[4]`  
+maximum:`r the.five[5]`  
+
+**(e)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+Yes. Although $days$ have no outliers in its boxplot as a whole, there are outliers when categorized by $fitness$.
+
+### Problem 4
+**(a)**
+```{r, echo = FALSE, warning=FALSE}
+the.line=lm(days ~ fitness, data = rehab)
+the.coef = round(the.line$coefficients,4)
+```
+```{r,warning = FALSE}
+unique(rehab$fitness)
+```
+
+$\hat{y} = `r the.coef[1]` + `r the.coef[2]`X_{Ave} + `r the.coef[3]`X_{Bel}$ 
+
+**(b)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+$\hat{\beta}_{1}$ means the estimated average value of number of days that people in category Ave need to complete the therapy is `r the.coef[2]` more than people in category AboveAve.
+
+**(c)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+$\hat{\beta}_{2}$ means the estimated average value of number of days that people in category BelowAve need to complete the therapy is  `r the.coef[3]` more than people in category AboveAve.
+
+**(d)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+$\hat{\beta}_{0}$ means the estimated average value of number of days that people in category AboveAve need to complete the therapy is `r the.coef[1]`.
+
+**(e)**
+```{r, echo = FALSE, eval = FALSE}
+
+```
+category fitness=AboveAve:$\hat{y}=`r the.coef[1]`$  
+category fitness=Ave:$\hat{y}=`r the.coef[1]+the.coef[2]`$  
+category fitness=BelowAve:$\hat{y}=`r the.coef[1]+the.coef[3]`$
+
+### Problem 5
+**(a)**
+```{r, echo = FALSE, warning=FALSE}
+qplot(Stay, InfctRsk, data = hospital)+
+  ggtitle("Scatter plot of InfctRsk by Stay")+
+  xlab("Stay")+
+  ylab("InfcRsk")
+
+the.correlation1 = round(cor(hospital$InfctRsk, hospital$Stay),4)
+```
+
+There are several outliers on hospital dataset. Correlation between InfctRsk and Stay is `r the.correlation1`, which indicates a medium linear relationship between this two random variables.
+
+**(b)**
+```{r, echo = FALSE, warning=FALSE}
+ggplot(hospital, aes(x = MedSchool, y = InfctRsk))+geom_boxplot()+
+  ggtitle("Boxplot of InfctRsk grouped by MedSchool")+
+  xlab("MedSchool")+
+  ylab("InfcRsk")+
+  coord_flip()
+```
+
+There is no apparent difference between different categories of InfctRsk because two boxplots overlap a lot. 
+
+**(c)**
+```{r, echo = FALSE, warning=FALSE}
+the.correlation1 = cor(hospital$InfctRsk, hospital$Stay)
+```
+
+The correlation between InfctRsk and Stay is `r round(the.correlation1,4)`.
+MedSchool is not a numeric variable.
+
+**(d)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+Yes. There are outliers on the boxplot of InfctRsk grouped by MedSchool.
+
+**(e)**
+```{r, echo = FALSE, warning=FALSE}
+the.mean=mean(hospital$Stay)
+the.sd=sd(hospital$Stay)
+```
+
+A reasonable range of average patient stay is from `r round(the.mean-3*the.sd,3)` to `r round(the.mean+3*the.sd,3)`.
+
+### Problem 6
+**(a)**
+```{r, echo = FALSE, warning=FALSE}
+the.line=lm(InfctRsk ~ ., data = hospital)
+the.coef = round(the.line$coefficients,4)
+the.line
+```
+
+The regression equation is: $\hat{y} = `r the.coef[1]` + `r the.coef[2]`X_{Yes}+ `r the.coef[3]`X_1$.
+
+**(b)**
+```{r, echo = FALSE, warning=FALSE}
+the.temp=the.coef[1] + the.coef[2]
+```
+
+hospitals not in a teaching school: $\hat{y} = `r the.coef[1]` + `r the.coef[3]`X_1$  
+hospitals in a teaching school:$\hat{y} = `r the.temp` + `r the.coef[3]`X_1$
+
+**(c)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+$\hat{\beta}_{1}$ means the percentage of patients who get a secondary infection during their hospital stay will be `r the.coef[2]` lager if they are in teaching school associated with the hospital than those who are not.
+
+**(d)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+$\hat{\beta}_{2}$ means the percentage of patients who get a secondary infection during their hospital stay will increase by `r the.coef[3]` on average if the average length of their stay increase by 1 day.
+
+
+**(e)**
+```{r, echo = FALSE, warning=FALSE}
+x.star =data.frame(Stay=7, MedSchool= "No")
+the.result=predict(the.line, x.star)
+```
+
+The estimated value of infection percentage is `r round(the.result,4)` on average.
+
+### Problem 7
+**(a)**
+```{r, echo = FALSE, warning=FALSE}
+the.line=lm(InfctRsk~MedSchool+Stay+MedSchool*Stay, data=hospital)
+the.coef=round(the.line$coefficients, 4)
+the.line
+
+```
+The regression model with an interaction term is $\hat{y}=`r the.coef[1]`+`r the.coef[2]`X_{1}+`r the.coef[3]`X_{Yes}`r the.coef[4]`X_{1}X_{Yes}$.
+
+**(b)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+category MedSchool=Yes:$\hat{y}=`r the.coef[1]+the.coef[3]`+`r the.coef[2]+the.coef[4]`X_{1}$  
+category MedSchool=No:$\hat{y}=`r the.coef[1]`+`r the.coef[2]`X_{1}$
+
+**(c)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+The slope of category MedSchool=Yes means the estimated value of InfctRsk will increase by `r the.coef[2]+the.coef[4]` on average when Stay increases by 1 day, holding categorical variable MedSchool equals Yes.  
+The slope of category MedSchool=No means the estimated value of InfctRsk will increase by `r the.coef[2]` on average when Stay increases by 1 day, holding categorical variable MedSchool equals No.
+
+**(d)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+The intercept of category MedSchool=Yes means the estimated average value of InfctRsk is `r the.coef[1]+the.coef[3]` when Stay equals 0.  
+The intercept of category MedSchool=No means the estimated average value of InfctRsk is `r the.coef[1]` when Stay equals 0.
+These two intercept is inappropriate because a patient's stay in hospital could not be 0.
+
+**(e)**
+```{r, echo = FALSE, warning=FALSE}
+x.star=data.frame(MedSchool="No",Stay=7)
+y_i=round(predict(the.line, x.star),4)
+```
+
+The estimated value is `r y_i` on average at MedSchool="No" and Stay=7.
+
+### Problem 8
+**(a)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+False. Correlation only measures the strength of linear relationship.
+
+
+**(b)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+False. A regression model with interation terms can be presented as $\hat{y}=\hat{\beta}_{0}+\hat{\beta}_{1}X_{1}+\hat{\beta}_{2}X_{2}+\hat{\beta}_{3}X_{1}X_{2}$, it is the same with the model of non-interaction terms if and only if $\hat{\beta}_{3}=0$, which scarcely happens.
+
+**(c)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+True. $r$ range from $-1$ to $1$.  
+If $r>0$ and $r<=1$, this suggests a positive linear relationship. Else if $r<0$ and $r>=-1$,this suggests a negative linear relationship. Else if $r=0$, this suggests no linear relationship.
+
+**(d)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+True. $e_{i} = y_{i} - \hat{y}_{i}$ when $e_{i} > 0$, it means $y_{i} > \hat{y}_{i}$, which indicates that we underestimated the value.
+
+
+### R Appendix
+```{r, ref.label=knitr::all_labels(),echo=TRUE,eval=FALSE}
+```
