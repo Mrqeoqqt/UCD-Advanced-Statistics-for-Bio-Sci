@@ -1,0 +1,347 @@
+---
+title: "STA 101 - HW 4"
+author: "Mingyi Xue"
+date: "May 10, 2018"
+output: html_document
+---
+
+
+### Load datasets
+```{r, warning=FALSE}
+alcohol <- read.csv("~/STA 101/Homework/HW4/alcohol.csv")
+CHD <- read.csv("~/STA 101/Homework/HW4/CHD.csv")
+flu <- read.csv("~/STA 101/Homework/HW4/flu.csv")
+```
+
+### Install and import packages
+```{r, warning=FALSE}
+library(ggplot2)
+library(pROC)
+library(EnvStats)
+```
+
+### Problem 1
+**(a)**
+```{r, echo = FALSE, warning=FALSE}
+the.model = lm(BAC~BrAC, data = alcohol)
+LY = boxcox(alcohol$BAC, objective.name = "Log-Likelihood", optimize = TRUE)$lambda
+YT = (alcohol$BAC^LY - 1)/LY
+t.data = data.frame(Y = YT, X = alcohol$BrAC)
+qplot(X, Y, data = t.data) + ggtitle("Transformed BAC vs. BrAC") + xlab("BrAC") + ylab("Transformed BAC")
+```
+
+Method: Log-Likelihood.  
+Value of $\lambda = `r round(LY, 4)`$.
+
+**(b)**
+```{r, echo = FALSE, warning=FALSE}
+the.model = lm(Y~X, data = t.data)
+Group = rep("Lower", nrow(t.data))
+Group[t.data$Y < median(t.data$Y)] = "Upper"
+Group = as.factor(Group)
+t.data$Group = Group
+t.data$ei = the.model$residuals
+t.data$yhat = the.model$fitted.values
+the.FKtest = fligner.test(t.data$ei, t.data$Group)
+the.FKtest
+qplot(yhat, ei, data = t.data)+ggtitle("Errors vs. Fitted Values")+xlab("Fitted Values")+ylab("Errors")+geom_hline(yintercept = 0)
+```
+Hypothesis:  
+$H_{0}:\sigma^{2}_{lower}=\sigma^{2}_{upper}$  
+$H_{A}:\sigma^{2}_{lower}\neq\sigma^{2}_{upper}$  
+Conclusion:  
+P-value is $0.2021>\alpha=0.05$, fail to reject $H_{0}$ and conclude that the variance are the same in both upper and lower groups at $95\%$ significance.
+
+**(c)**
+```{r, echo = FALSE, warning=FALSE}
+LY = boxcox(alcohol$BAC, objective.name = "Log-Likelihood", optimize = TRUE)$lambda
+YT = (alcohol$BAC^LY - 1)/LY
+LX = boxcox(alcohol$BrAC, objective.name = "Log-Likelihood", optimize = TRUE)$lambda
+XT = (alcohol$BrAC^LX - 1)/LX
+tt.data = data.frame(Y = YT, X = XT)
+qplot(XT, YT, data = tt.data) + ggtitle("Transformed BAC vs. Transformed BrAC") + xlab("Transformed BrAC") + ylab("Transformed BAC")
+```
+
+Method: Log-Likelihood.  
+$\lambda$ for BAC is $`r round(LY, 4)`$, $\lambda$ for BrAC is $`r round(LX, 4)`$.
+
+**(d)**
+```{r, echo = FALSE, warning=FALSE}
+the.model = lm(Y~X, data = tt.data)
+ei = the.model$residuals
+tt.data$ei = the.model$residuals
+tt.data$yhat = the.model$fitted.values
+the.SWtest = shapiro.test(ei)
+the.SWtest
+
+Group = rep("Lower", nrow(tt.data))
+Group[tt.data$Y < median(tt.data$Y)] = "Upper"
+Group = as.factor(Group)
+tt.data$Group = Group
+the.FKtest = fligner.test(tt.data$ei, tt.data$Group)
+the.FKtest
+```
+
+S-W test:  
+Hypothesis:  
+$H_{0}$:The data is normally distributed.  
+$H_{A}$:The data is not normally distributed.  
+Conclusion:  
+P-value is $0.005283<\alpha=0.01$, reject $H_{0}$ and conclude that the data is not normally distributed.
+
+F-K test:  
+Hypothesis:  
+$H_{0}:\sigma^{2}_{lower}=\sigma^{2}_{upper}$  
+$H_{A}:\sigma^{2}_{lower}\neq\sigma^{2}_{upper}$  
+Conclusion:  
+P-value is $0.1781>\alpha=0.05$, fail to reject $H_{0}$ and conclude that the variance are the same in both upper and lower groups at $95\%$ significance.
+
+
+**(e)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+Because p-value of F-K test for dataset with transformed BAC is 0.2021 and is larger than that for dataset with transformed BrAC and BAC, which is 0.1781, so I woud suggest transformation only for Y. 
+
+### Problem 2
+**(a)**
+```{r, echo = FALSE, warning=FALSE}
+the.logit = glm(shot~age + aware + gender, data = flu, family = binomial(link = logit))
+the.betas = the.logit$coefficients
+exp.betas = exp(the.betas)
+names(exp.betas) = c("(Intercept)", "exp.age", "exp.aware", "exp.genderM")
+alpha = 0.1
+the.CI = confint(the.logit, level = 1 - alpha)
+the.betas
+exp.CI = exp(the.CI)
+rownames(exp.CI) = c("(Intercept)", "exp.age", "exp.aware", "exp.genderM")
+exp.betas
+exp.CI
+summary(the.logit)
+```
+
+The estimated logistic-regression function : $\ln \frac{\hat{\pi}}{1-\hat{\pi}} = `r round(the.betas[1], 4)` + `r round(the.betas[2], 4)`X_{1} `r round(the.betas[3], 4)`X_{2} + `r round(the.betas[4], 4)`X_{M}$.
+
+**(b)**
+```{r, echo = FALSE, warning=FALSE}
+x.star = data.frame(age = 55, aware = 70, gender = "M")
+the.predict = predict(the.logit, x.star, type = "response")
+the.predict
+```
+
+This suggests that a 55-year-old female with an awareness score of 70 has a `r round(the.predict, 4)` chance to get the flu.
+
+**(c)**
+```{r, echo = FALSE, warning=FALSE}
+the.betas[2]
+```
+
+Since $\beta_{1} = `r round(the.betas[2], 4)` > 0$, the probability of a flu shot goes up as your age increases.
+
+**(d)**
+```{r, echo = FALSE, warning=FALSE}
+exp.betas[2]
+```
+
+Holding all other variables as constant, when age increases by 1 year, the odds of flu shot will be `r round(exp.betas[2], 4)` times that of what it was.
+
+**(e)**
+```{r, echo = FALSE, warning=FALSE}
+exp.CI[2,]
+```
+
+We are 90% confident that when age increases by 1 year, we expect the odds of flu shot to be between `r round(exp.CI[2,1], 4)` and `r round(exp.CI[2,2], 4)` times of what it was, holding all other variables constant.
+
+**(f)**
+```{r, echo = FALSE, warning=FALSE}
+exp.betas[4]
+```
+
+Holding all other variables as constant, the odds of flu shot for Male is `r round(exp.betas[4], 4)` times that for Female.
+
+**(g)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+We are 90% confident that the odds of flu shot tends to ibe between 0.6603 and 3.7286 times what it was when a patient is Male compared to Female, holding all other variables constant.
+
+### Problem 3
+**(a)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+It is difficult to interpret $\beta$'s in logistic regression problem. $e^{\beta_{0}}$ represents the odds of a female patient who is 0 year old and has no awareness of health, $e^{\beta_{0}}$ doesn't make sense in this case since a patient cannot be 0 year old.
+
+**(b)**
+```{r, echo = FALSE, warning=FALSE}
+the.min=min(flu$age)
+the.max=max(flu$age)
+```
+
+The reasonable range for patients' age is from `r the.min` to `r the.max`. So it is inappropriate to predict someone aged 12.
+
+**(c)**
+```{r, echo = FALSE, warning=FALSE}
+pi.0 = 0.50
+truth = flu$shot
+predicted = ifelse(fitted(the.logit)>pi.0, 1, 0)
+the.table = table(truth, predicted)
+sens = sum(predicted ==1 & truth == 1)/sum(truth == 0)
+spec = sum(predicted ==0 & truth == 0)/sum(truth == 0)
+error = sum(predicted != truth)/length(predicted)
+results = c(sens, spec, error)
+names(results) = c("Sensitivity", "Specificity", "Error Rate")
+round(results, 4)
+```
+
+
+
+**(d)**
+```{r, echo = FALSE, warning=FALSE}
+the.auc = auc(flu$shot, fitted(the.logit), plot = TRUE)
+the.auc
+auc.CI = ci(the.auc, level = 1-0.05)
+auc.CI
+```
+
+AUC is `r round(the.auc, 4)`.   
+95% confident interval for AUC is between `r round(auc.CI[1], 4)` and `r round(auc.CI[3], 4)` and it does not contain 0.5. So this suggests our model predicts the response variable very well. 
+
+### Problem 4
+**(a)**
+```{r, echo = FALSE, warning=FALSE}
+the.logit = glm(CHD~AGE, data = CHD, family = binomial(link = logit))
+the.betas = the.logit$coefficients
+the.betas
+exp.betas = exp(the.betas)
+names(exp.betas) = c("(Intercept)", "exp.AGE")
+alpha = 0.01
+the.CI = confint(the.logit, level = 1 - alpha)
+exp.CI = exp(the.CI)
+rownames(exp.CI) = c("(Intercept)", "exp.AGE")
+exp.betas
+exp.CI
+summary(the.logit)
+```
+
+The estimated logistic-regression function : $\ln \frac{\hat{\pi}}{1-\hat{\pi}} = `r round(the.betas[1], 4)` + `r round(the.betas[2], 4)`X_{1}$.
+
+**(b)**
+```{r, echo = FALSE, warning=FALSE}
+x.star = data.frame(AGE = 69)
+the.predict = predict(the.logit, x.star, type = "response")
+the.predict
+```
+
+This suggests that a 69 year old has a `r round(the.predict, 4)` chance to have CHD.
+
+**(c)**
+```{r, echo = FALSE, warning=FALSE}
+the.betas[2]
+```
+
+Since $\beta_{1} = `r round(the.betas[2], 4)` > 0$, the probability of CHD goes up as your age increases.
+
+**(d)**
+```{r, echo = FALSE, warning=FALSE}
+exp.betas[2]
+```
+
+When age increases by 1 year, the odds of CHD will be `r round(exp.betas[2], 4)` times that of what it was.
+
+**(e)**
+```{r, echo = FALSE, warning=FALSE}
+exp.CI[2,]
+```
+
+We are 99% confident that when age increases by 1 year, we expect the odds of CHD to be between `r round(exp.CI[2,1], 4)` and `r round(exp.CI[2,2], 4)` times what it was.
+
+### Problem 5
+**(a)**
+```{r, echo = FALSE, warning=FALSE}
+the.logit = glm(CHD~AGE, data = CHD, family = binomial(link = logit))
+plot(CHD$AGE, the.logit$fitted.values)
+curve(predict(the.logit, data.frame(AGE=x), type = "response"), add = TRUE)
+```
+
+Since variance in slope is not too large when AGE varies, AGE doesn't seem to have a large effect on the probability of CHD.
+
+**(b)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+It is difficult to interpret $\beta$'s in logistic regression problem. $e^{\beta_{0}}$ represents the odds of CHD for a 0 year old, $e^{\beta_{0}}$ doesn't make sense in this case since a patient cannot be 0 year old.
+
+**(c)**
+```{r, echo = FALSE, warning=FALSE}
+the.min=min(CHD$AGE)
+the.max=max(CHD$AGE)
+x.star = data.frame(AGE = 44)
+the.predict = predict(the.logit, x.star, type = "response")
+the.predict
+```
+
+The reasonable range for patients' age is from `r the.min` to `r the.max`. So it is appropriate to predict a patient aged 44. A 44 year old has a `r round(the.predict, 4)` chance to have CHD.
+
+**(d)**
+```{r, echo = FALSE, warning=FALSE}
+pi.0 = 0.50
+truth = CHD$CHD
+predicted = ifelse(fitted(the.logit)>pi.0, 1, 0)
+the.table = table(truth, predicted)
+sens = sum(predicted ==1 & truth == 1)/sum(truth == 0)
+spec = sum(predicted ==0 & truth == 0)/sum(truth == 0)
+error = sum(predicted != truth)/length(predicted)
+results = c(sens, spec, error)
+names(results) = c("Sensitivity", "Specificity", "Error Rate")
+round(results, 4)
+```
+
+**(e)**
+```{r, echo = FALSE, warning=FALSE}
+the.auc = auc(CHD$CHD, fitted(the.logit), plot = TRUE)
+the.auc
+auc.CI = ci(the.auc, level = 1-0.05)
+auc.CI
+```
+
+AUC is `r round(the.auc, 4)`.   
+95% confident interval for AUC is between `r round(auc.CI[1], 4)` and `r round(auc.CI[3], 4)` and it does not contain 0.5. So this suggests our model predicts the response variable well. 
+
+### Problem 6
+**(a)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+True. When $e^{\beta_{1}}$ contains 1, $\beta_{1}$ contains 0. So we can conclude $X_{1}$ has no influence on the odds of trait($Y=1$).
+
+**(b)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+False. $e^{\beta_{1}}$ gives the change in the odds of trait($Y=1$) when $X_{1}$ changes by 1 unit. 
+
+**(c)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+False. The variable we are interested in equals $\beta_{0}$ only when all explanatory variables equal 0, but not all $X_{i}$ make sense at 0. Besides, $\beta_{0}$ may not in a reasonable range for $Y$.
+
+**(d)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+True. "fail to reject" means "accept" the null hypothesis $H_{0}: \beta_{1} = 0$, so we can conclude that $X_{1}$ does not effect the odds of trait($Y=1$), thus not effecting probability.
+
+
+### R Appendix
+```{r, ref.label=knitr::all_labels(),echo=TRUE,eval=FALSE}
+```
