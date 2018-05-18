@@ -125,7 +125,7 @@ The estimated logistic-regression function : $\ln \frac{\hat{\pi}}{1-\hat{\pi}} 
 
 **(b)**
 ```{r, echo = FALSE, warning=FALSE}
-x.star = data.frame(age = 55, aware = 70, gender = "M")
+x.star = data.frame(age = 55, aware = 70, gender = "F")
 the.predict = predict(the.logit, x.star, type = "response")
 the.predict
 ```
@@ -189,7 +189,7 @@ pi.0 = 0.50
 truth = flu$shot
 predicted = ifelse(fitted(the.logit)>pi.0, 1, 0)
 the.table = table(truth, predicted)
-sens = sum(predicted ==1 & truth == 1)/sum(truth == 0)
+sens = sum(predicted ==1 & truth == 1)/sum(truth == 1)
 spec = sum(predicted ==0 & truth == 0)/sum(truth == 0)
 error = sum(predicted != truth)/length(predicted)
 results = c(sens, spec, error)
@@ -293,7 +293,7 @@ pi.0 = 0.50
 truth = CHD$CHD
 predicted = ifelse(fitted(the.logit)>pi.0, 1, 0)
 the.table = table(truth, predicted)
-sens = sum(predicted ==1 & truth == 1)/sum(truth == 0)
+sens = sum(predicted ==1 & truth == 1)/sum(truth == 1)
 spec = sum(predicted ==0 & truth == 0)/sum(truth == 0)
 error = sum(predicted != truth)/length(predicted)
 results = c(sens, spec, error)
