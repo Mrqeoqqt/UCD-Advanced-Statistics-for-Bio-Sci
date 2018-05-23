@@ -1,0 +1,448 @@
+---
+title: "STA 101 - HW 5"
+author: "Mingyi Xue"
+date: "May 18, 2018"
+output: html_document
+---
+
+
+### Load databases into current workingspace:
+
+```{r,warning=FALSE}
+control <- read.csv("~/STA 101/Homework/HW5/control.csv")
+flu <- read.csv("~/STA 101/Homework/HW5/flu.csv")
+rat <- read.csv("~/STA 101/Homework/HW5/rat.csv")
+```
+
+### Install and load packages:
+
+```{r}
+library(ggplot2)
+library(pROC)
+library(nnet)
+library(LogisticDx)
+library(asbio)
+```
+
+### Problem 1
+**(a)**
+```{r, echo = FALSE, warning=FALSE}
+empty.model = glm(shot~1, data = flu, family = binomial(link = logit))
+full.model = glm(shot~., data = flu, family = binomial(link = logit))
+best.forward = step(empty.model,scope = list(lower = empty.model, upper = full.model), direction = "forward", criterion = "AIC")
+```
+
+Final model:
+
+```{r, echo = FALSE, warning=FALSE}
+best.forward$formula
+```
+
+
+**(b)**
+```{r, echo = FALSE, warning=FALSE}
+best.backward= step(full.model,scope = list(lower = empty.model, upper = full.model), direction = "backward", criterion = "AIC")
+```
+
+Final Model:
+
+```{r, echo = FALSE, warning=FALSE}
+best.backward$formula
+```
+
+**(c)**
+```{r, echo = FALSE, warning=FALSE}
+final.model = glm(shot~aware + age, data = flu, family = binomial(link = logit))
+final.coef = final.model$coefficients
+final.model
+LL = logLik(final.model)
+round(LL, 4)
+```
+
+The logistic regression model is $ln\frac{\hat\pi}{1-\hat\pi}=`r round(final.coef[1], 4)`+`r round(final.coef[3], 4)`X_{1} `r round(final.coef[2], 4)` X_{2}$.  
+The log-likelihood of the model is `r round(LL, 4)`.
+
+**(d)**
+```{r, echo = FALSE, warning=FALSE}
+final.iteraction = glm(shot~aware + age + aware*age, data = flu, family = binomial(link = logit))
+final.iteraction
+LL.iteraction = logLik(final.iteraction)
+round(LL.iteraction, 4)
+```
+
+The log-likelihood of the model is `r round(LL.iteraction, 4)`.
+
+**(e)**
+```{r, echo = FALSE, warning=FALSE}
+model.A = final.iteraction
+model.A
+model.0 = final.model
+model.0
+LLA = logLik(model.A)
+LL0 = logLik(model.0)
+pA = length(model.A$coefficients)
+p0 = length(model.0$coefficients)
+LR = -2*(LL0 - LLA)
+p.value = pchisq(LR, df = pA - p0)
+p.value
+```
+
+$H_{0}$:$\hat\beta_{3} = 0$.  
+$H_{A}$:$\hat\beta_{3} \neq 0$.  
+The test statistics LR equals `r round(LR, 4)`, p-value equals `r round(p.value, 4)`.  
+
+**(f)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+p-value equals `r round(p.value, 4)` > $\alpha = 0.05$ and is large enough for us to fail to reject $H_{0}$, so we can conclude that the interaction term should be dropped.
+
+### Problem 2
+**(a)**
+```{r, echo = FALSE, warning=FALSE}
+exp.betas = exp(final.model$coefficients)
+names(exp.betas) = c("(Intercept)",  "exp.aware", "exp.age")
+exp.betas
+```
+
+Holding all other variables as constant, when age increases by 1 year, the odds of flu shot will be `r round(exp.betas[3], 4)` times that of what it was.
+
+**(b)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+Holding all other variables as constant, when health awareness score increases by 1 point, the odds of flu shot will be `r round(exp.betas[2], 4)` times that of what it was.
+
+**(c)**
+```{r, echo = FALSE, warning=FALSE}
+x.star = data.frame(age = 57, aware = 50, gender = "M")
+the.predict = predict(final.model, x.star, type = "response")
+the.predict
+```
+
+This suggests that a 57-year-old male with an awareness score of 50 has a `r round(the.predict, 4)` chance to get the flu. Since the chance is smaller than 0.5, he would not get the flu.
+
+**(d)**
+```{r, echo = FALSE, warning=FALSE}
+good.stuff = dx(final.model)
+pear.r = good.stuff$Pr
+std.r = good.stuff$sPr
+df.beta = good.stuff$dBhat
+change.pearson = good.stuff$dChisq
+hist(pear.r, main="Pearson Residuals")
+```
+
+There exist values above 4.
+
+```{r, echo = FALSE, warning=FALSE}
+good.stuff[pear.r > 4]
+```
+**(e)**
+```{r, echo = FALSE, warning=FALSE}
+plot(df.beta, main="Index plot of the change in the Betas")
+```
+
+There exist values above 0.3.
+
+```{r, echo = FALSE, warning=FALSE}
+good.stuff[df.beta >0.3]
+```
+
+### Problem 3
+**(a)**
+```{r, echo = FALSE, warning=FALSE}
+empty.model = multinom(con~1, data = control, trace = FALSE)
+full.model = multinom(con~., data = control, trace = FALSE)
+best.forward = step(empty.model,scope = list(lower = empty.model, upper = full.model), direction = "forward", criterion = "AIC", trace = FALSE)
+```
+
+Final model:  
+con ~ edu + age
+
+```{r, echo = FALSE, warning=FALSE}
+summary(best.forward)
+```
+
+
+**(b)**
+```{r, echo = FALSE, warning=FALSE}
+best.backward= step(full.model,scope = list(lower = empty.model, upper = full.model), direction = "backward", criterion = "AIC", trace = FALSE)
+```
+
+Final Model:  
+con ~ age + edu
+
+```{r, echo = FALSE, warning=FALSE}
+summary(best.backward)
+```
+
+
+**(c)**
+```{r, echo = FALSE, warning=FALSE}
+final.model = multinom(con ~ edu + age, data = control, trace = FALSE)
+final.model
+final.coef = coef(final.model)
+```
+$ln\frac{\hat\pi_{None}}{\hat\pi_{Long}} = `r round(final.coef[1,1], 4)``r round(final.coef[1,2], 4)`X_{eduG} `r round(final.coef[1,3], 4)`X_{eduL} `r round(final.coef[1,4], 4)`X_{eduM} +`r round(final.coef[1,5], 4)`X_{age}$
+
+$ln\frac{\hat\pi_{Short}}{\hat\pi_{Long}} = `r round(final.coef[2,1], 4)`+`r round(final.coef[2,2], 4)`X_{eduG} `r round(final.coef[2,3], 4)`X_{eduL} `r round(final.coef[2,4], 4)`X_{eduM} +`r round(final.coef[2,5], 4)`X_{age}$
+
+**(d)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+When age increases by 1 year, the relative probability of no birth control compared to long term birth control is `r round(exp(final.coef[1,5]), 4)` times what it was, holding level of education constant.
+
+**(e)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+When age increases by 1 year, the relative probability of short birth control compared to long term birth control is `r round(exp(final.coef[2,5]), 4)` times what it was, holding level of education constant.
+
+### Problem 4
+**(a)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+The relative probability of no birth control compared to long term birth control in Group G is `r round(final.coef[1,3]-final.coef[1,4], 4)` times in Group M, holding age constant.
+
+**(b)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+The relative probability of short term birth control compared to long term birth control in Group L is `r round(final.coef[2,2]-final.coef[2,4], 4)` times in Group M, holding age constant.
+
+**(c)**
+```{r, echo = FALSE, warning=FALSE}
+GOF.Multi = function(the.model){
+  num.para = the.model$edf
+  n = nrow(the.model$residuals)
+  LL = logLik(the.model)
+  df.model = n - num.para
+  AIC = -2*logLik(the.model) +2*the.model$edf
+  BIC = -2*logLik(the.model) +log(n)*the.model$edf
+  the.results = c(LL,num.para,df.model,AIC,BIC)
+  names(the.results) = c("LL","K","D.F.","AIC","BIC")
+  return(the.results)
+}
+model.list = c("con ~ age","con ~ age + edu")
+model.fits = lapply(model.list,function(the.form){
+  multinom(the.form,data = control,trace = FALSE)
+})
+all.GOF = t(sapply(model.fits,function(models){
+  GOF.Multi(models)
+}))
+rownames(all.GOF) = model.list
+round(all.GOF,digits = 4)
+LL0 = all.GOF[1,"LL"]
+LLA = all.GOF[2,"LL"]
+p0 = all.GOF[1,"K"]
+pA = all.GOF[2,"K"]
+LR = -2*(LL0 - LLA)
+p.value = pchisq(LR, pA-p0, lower.tail = FALSE)
+p.value
+# model.0 = multinom(con ~ age, data = control, trace = FALSE)
+# model.A = multinom(con ~ age + edu, data = control, trace = FALSE)
+# LLA = logLik(model.A)
+# LL0 = logLik(model.0)
+# pA = model.A$edf
+# p0 = model.0$edf
+# LR = -2*(LL0 - LLA)
+# p.value = pchisq(LR, pA-p0, lower.tail = FALSE)
+# p.value
+```
+
+$H_{0}$:$\hat\beta_{2}=\hat\beta_{3}=\hat\beta_{4}=0$.  
+$H_{A}$:Not all $\hat\beta_{i} = 0$, where i=2,3,4.  
+The test statistics LR equals `r round(LR, 4)`, p-value equals `r p.value`.  
+
+
+**(d)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+p-value equals `r p.value` < $\alpha = 0.10$ and is small enough for us to reject $H_{0}$ and conclude that $X_{2}$ cannot be dropped from the model.
+
+**(e)**
+```{r, echo = FALSE, warning=FALSE}
+x.star = data.frame(age = 29, edu = "G", working = "Y")
+predict(final.model, x.star,type = "probs")
+```
+
+### Problem 5
+**(a)**
+```{r, echo = FALSE, warning=FALSE}
+split.data = split(control, control$con)
+names(split.data)
+AvsLS=rbind(split.data[[1]], split.data[[3]])
+model.AvsLS = glm(con~ edu + age, data = AvsLS, family = binomial(logit))
+model.AvsLS
+the.coef = model.AvsLS$coefficients
+```
+
+Logistic regression model: $ln\frac{\hat\pi}{1-\hat\pi}=`r round(the.coef[1], 4)` + `r round(the.coef[2], 4)`X_{eduG}`r round(the.coef[3], 4)`X_{eduL}`r round(the.coef[4], 4)`X_{eduM}+`r round(the.coef[5], 4)`X_{age}$
+
+**(b)**
+```{r, echo = FALSE, warning=FALSE}
+good.stuff = dx(model.AvsLS)
+pear.r = good.stuff$Pr
+std.r = good.stuff$sPr
+df.beta = good.stuff$dBhat
+change.pearson = good.stuff$dChisq
+hist(std.r, main="Standardized Residuals")
+good.stuff[std.r > 3 | std.r< -3]
+```
+
+There is no observations larger than 3 or smaller than -3.
+
+**(c)**
+```{r, echo = FALSE, warning=FALSE}
+plot(change.pearson, main="Index plot of the change in the Pearson's test-statistics")
+good.stuff[change.pearson > 8]
+```
+
+There is no observations larger than 8.
+
+**(d)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+Since there is no outliers in standardized residuals and $\Delta\chi^{2}$, no observations should be removed.
+
+### Problem 6
+**(a)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+False. An outlier is always an influential point, but an influential point is not necessarily an outlier. It may be repeated rows in the dataset.
+
+**(b)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+False. $e^{\beta_{i}}$ for different categories are usually different.
+
+**(c)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+False. If we reject $H_{0}$, we can conclude that the larger model is better.
+
+**(d)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+False. Usually, a cutoff is $\pm 3$ for standardized residuals. 
+
+### Problem 7
+**(a)**
+```{r, echo = FALSE, warning=FALSE}
+group.means = by(rat$Weight, rat$Type, mean)
+group.sds = by(rat$Weight, rat$Type, sd)
+group.nis = by(rat$Weight, rat$Type, length)
+the.summary=rbind(group.means, group.sds, group.nis)
+the.summary = round(the.summary,digits=4)
+colnames(the.summary) = names(group.means)
+rownames(the.summary) = c("Means","Std. Dev","Sample size")
+the.summary
+```
+
+**(b)**
+```{r, echo = FALSE, warning=FALSE}
+plot(group.means,xaxt="n",pch=19,col="purple",xlab = "Type of food", ylab="Weight",main="Average weight change in rats by group", type="b")
+axis(1,1:length(group.means),names(group.means))
+```
+```{r, echo = FALSE, warning=FALSE}
+boxplot(rat$Weight~rat$Type,main="Weight change in rats by group",ylab="Weight")
+```
+
+There appears to be a difference between group Cereal and other groups.
+
+**(c)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+Hypothesis:  
+$H_{0}$: Smaller model fits better.  
+$H_{A}$: Largerer model fits better.  
+Test statistics:  
+$F_{s}=\frac{SSE_{s}-SSE_{L}}{dof(SSE_{s}-dof(SSE_{L}))}/\frac{SSE_{L}}{dof(SSE_{L})}$
+
+**(d)**
+```{r, echo = FALSE, warning=FALSE}
+larger.model=lm(Weight~Type,data = rat)
+smaller.model=lm(Weight~1,data = rat)
+anova.table=anova(smaller.model, larger.model)
+anova.table
+```
+
+Test-statistic equals `r round(anova.table[2,5], 4)`.  
+P-value equals `r round(anova.table[2,6], 4)`.
+
+**(e)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+P-value = `r round(anova.table[2,6], 4)` > $\alpha = 0.10$ is large enough for us to fail to reject $H_{0}$, and conclude that smaller model is better. Means in different groups tend to be equal.
+
+### Problem 8
+**(a)**
+```{r, echo = FALSE, warning=FALSE}
+the.model = larger.model
+qqnorm(the.model$residuals)
+qqline(the.model$residuals)
+```
+
+According to qqplot, the data appears to be approximately normal.
+
+**(b)**
+```{r, echo = FALSE, warning=FALSE}
+sw.test = shapiro.test(the.model$residuals)
+sw.test
+```
+
+Hypothesis:  
+$H_{0}$: The data is normally distributed.  
+$H_{A}$: The data is not normally distributed.  
+P-value of S-W test equals `r round(sw.test$p.value, 4)` > $\alpha = 0.05$. It is large for us to fail to reject $H_{0}$ and conclude that the data is normally distributed.
+
+**(c)**
+```{r, echo = FALSE, warning=FALSE}
+plot(the.model$fitted.values,the.model$residuals, pch=19)
+abline(h=0,col="purple")
+```
+
+According to the plot, there appears to be constant variance.
+
+**(d)**
+```{r, echo = FALSE, warning=FALSE}
+ML.test = modlevene.test(the.model$residuals, rat$Type)
+ML.test
+```
+
+Since the p-value equals `r round(ML.test$'Pr(>F)'[1], 4)` > $\alpha = 0.05$. It is large enough for us to fail to reject $H_{0}$ and conclude that there is no evidence for non-constant variance between groups.
+
+**(e)**
+```{r, echo = FALSE, warning=FALSE}
+
+```
+
+The assumptions of ANOVA are met in this problem, considering all criteria tested above.
+
+### R Appendix
+```{r, ref.label=knitr::all_labels(),echo=TRUE,eval=FALSE}
+```
