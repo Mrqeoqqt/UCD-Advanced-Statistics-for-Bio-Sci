@@ -293,7 +293,7 @@ s.e.2 = VC[2, 4]
 s.A.2 = VC[1, 4]
 ```
 
-$\sigma_{A} = `r round(sqrt(s.A.2), 4)`$, $\sigma_{A} = `r round(sqrt(s.e.2), 4)`$.
+$\sigma_{A} = `r round(sqrt(s.A.2), 4)`$, $\sigma_{e} = `r round(sqrt(s.e.2), 4)`$.
 
 
 **(c)**
